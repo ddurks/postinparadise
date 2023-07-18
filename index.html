@@ -5,7 +5,9 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="main.css">
-		<script async src="https://unpkg.com/suncalc@1.8.0/suncalc.js"></script>
+		<script src="https://unpkg.com/suncalc@1.8.0/suncalc.js"></script>
+		<script src="lib/heightfield.worker.js"></script>
+		<script src="lib/HeightfieldClient.js"></script>
 	</head>
 	<body>
 		<img id="loading" src="textures/loading.gif">
@@ -23,7 +25,8 @@
 				"imports": {
 					"three": "../lib/three.module.js",
 					"three/addons/": "./jsm/",
-					"suncalc": "../lib/suncalc.js"
+					"suncalc": "../lib/suncalc.js",
+					"cannon": "./lib/cannon-es.js"
 				}
 			}
 		</script>
@@ -31,6 +34,7 @@
 		<script type="module">
 
 			import * as THREE from 'three';
+			import * as CANNON from 'cannon';
 
 			import Stats from 'three/addons/libs/stats.module.js';
 
@@ -48,6 +52,35 @@
 			var movieScreen, loginButton;
 			var today = new Date();
 			let currMinutes = today.getMinutes();
+			var treeMixer, crabMixer;
+			let lt = new Date(),frame = 0;
+			const maxFrame = 800,fps = 30;
+			var leaves, island, tree, crab;
+			var crabBody;
+			var heightfieldClient = new HeightfieldClient();
+
+			// PHYSICS
+			const world = new CANNON.World();
+			// Tweak contact properties.
+			// Contact stiffness - use to make softer/harder contacts
+			world.defaultContactMaterial.contactEquationStiffness = 1e9;
+			// Stabilization time in number of timesteps
+			world.defaultContactMaterial.contactEquationRelaxation = 4;
+			const solver = new CANNON.GSSolver();
+			solver.iterations = 7;
+			solver.tolerance = 0.1;
+			world.solver = new CANNON.SplitSolver(solver);
+			// use this to test non-split solver
+			// world.solver = solver
+			world.gravity.set(0, -20, 0)
+			// Create a contact material (friction coefficient = 0.3a)
+			var physicsMaterial = new CANNON.Material('physics');
+			const physics_physics = new CANNON.ContactMaterial(physicsMaterial, physicsMaterial, {
+				friction: 0.3,
+				restitution: 0.0,
+			});
+			// We must add the contact materials to the world
+			world.addContactMaterial(physics_physics);
 
 			let userLocation = navigator.geolocation;
 			function myGeolocator() {
@@ -128,9 +161,9 @@
 				skyUniforms[ 'mieCoefficient' ].value = 0.005;
 				skyUniforms[ 'mieDirectionalG' ].value = 0.8;
 
+				var animationsMap = new Map();
 				// Meshes
 				var gltfLoader = new GLTFLoader();
-				var leaves, island, tree;
 				var islandX = 0, islandY = 0, islandZ = 0;
 				gltfLoader.load("./glb/paradise.glb", (gltf) => {
 					gltf.scene.traverse(function (object) {
@@ -146,15 +179,37 @@
 					island.position.set(islandX, islandY - 0.6, islandZ);
 					island.scale.set(5,2,5);
 					scene.add( island );
+
+					var heightfield = heightfieldClient.buildHeightField(island)
 				});
-				var crab;
 				gltfLoader.load("./glb/screencrab.glb", (gltf) => {
 					gltf.scene.traverse(function (object) {
 						if (object.isMesh) object.castShadow = true;
 					});
 					crab = gltf.scene.getObjectByName('Armature');
-					crab.position.set(islandX + 1, islandY + 2.9, islandZ + 1);
+					crab.position.set(islandX + 1, islandY + 5.9, islandZ + 1);
 					scene.add( crab );
+
+					const slipperyMaterial = new CANNON.Material('slippery');
+					slipperyMaterial.friction = 0;
+
+					// Player physics body
+					const shape = new CANNON.Box(new CANNON.Vec3(1, 1, 1));
+					crabBody = new CANNON.Body({
+						mass: 1,
+						material: slipperyMaterial
+					});
+					crabBody.addShape(shape);
+					crabBody.position.copy(crab.position);
+					crabBody.lastPosition = { x: crabBody.position.x, y: crabBody.position.y, z: crabBody.position.z };
+					crabBody.linearDamping = 0.999;
+					world.addBody(crabBody);
+
+					crabMixer = new THREE.AnimationMixer(crab);
+					gltf.animations.forEach((a) => {
+						animationsMap.set(a.name, crabMixer.clipAction(a));
+					});
+					animationsMap.get('idle').fadeIn(2).play();
 				});
 
 				pmremGenerator = new THREE.PMREMGenerator( renderer );
@@ -216,10 +271,25 @@
 
 			}
 
+			function crabUpdate(delta) {
+				crab.position.copy(crabBody.position);
+    			crabBody.quaternion.copy(crab.quaternion);
+				world.step(timeStep, delta);
+			}
+
+			const clock = new THREE.Clock();
+			const timeStep = 1/60;
 			function animate() {
 
 				requestAnimationFrame( animate );
 				render();
+				let delta = clock.getDelta();
+				if (crabMixer) {
+					crabMixer.update(delta);
+					if (island && crab) {
+						crabUpdate(delta);
+					}
+				}
 				stats.update();
 				var today = new Date();
 				let minutes = today.getMinutes();
@@ -228,6 +298,7 @@
 					currMinutes = minutes;
 				}
 			}
+
 
 			function render() {
 
