@@ -42,12 +42,19 @@
 
 			let container, stats;
 			let camera, scene, renderer;
+			var raycaster, gravityRaycaster, gravityDirection;
 			let controls, sky, water, sun;
 			let lat = 41.881832, long = -87.623177,phi, theta;
 			let sunPos, sunAzimuth, sunAltitude, parameters, renderTarget, pmremGenerator;
 			var movieScreen, loginButton;
 			var today = new Date();
 			let currMinutes = today.getMinutes();
+			var crab, island;
+			var time = 0;
+			var animationsMap = new Map(), crabMixer, clock;
+
+			let walkTime = 0; // Time variable for walking
+			var walkPath = [];
 
 			let userLocation = navigator.geolocation;
 			function myGeolocator() {
@@ -89,6 +96,15 @@
 
 				sun = new THREE.Vector3();
 
+				// Set up raycaster for detecting the surface position
+				raycaster = new THREE.Raycaster();
+				gravityRaycaster = new THREE.Raycaster();
+
+				gravityDirection = new THREE.Vector3(0, -1, 0);
+
+				clock = new THREE.Clock();
+				walkPath = createWalkPath();
+
 				// Water
 
 				const waterGeometry = new THREE.PlaneGeometry( 10000, 10000 );
@@ -121,6 +137,10 @@
 				sky.scale.setScalar( 10000 );
 				scene.add( sky );
 
+				// const axesHelper = new THREE.AxesHelper( 5 );
+				// axesHelper.position.set(0, 10, 0);
+				// scene.add( axesHelper );
+
 				const skyUniforms = sky.material.uniforms;
 
 				skyUniforms[ 'turbidity' ].value = 10;
@@ -130,7 +150,7 @@
 
 				// Meshes
 				var gltfLoader = new GLTFLoader();
-				var leaves, island, tree;
+				var leaves, tree;
 				var islandX = 0, islandY = 0, islandZ = 0;
 				gltfLoader.load("./glb/paradise.glb", (gltf) => {
 					gltf.scene.traverse(function (object) {
@@ -147,14 +167,19 @@
 					island.scale.set(5,2,5);
 					scene.add( island );
 				});
-				var crab;
 				gltfLoader.load("./glb/screencrab.glb", (gltf) => {
 					gltf.scene.traverse(function (object) {
 						if (object.isMesh) object.castShadow = true;
 					});
 					crab = gltf.scene.getObjectByName('Armature');
-					crab.position.set(islandX + 1, islandY + 2.9, islandZ + 1);
+					crab.position.set(islandX + 1, islandY + 10, islandZ + 1);
 					scene.add( crab );
+
+					crabMixer = new THREE.AnimationMixer(crab);
+					gltf.animations.forEach((a) => {
+						animationsMap.set(a.name, crabMixer.clipAction(a));
+					});
+					animationsMap.get('walk').fadeIn(1).play();
 				});
 
 				pmremGenerator = new THREE.PMREMGenerator( renderer );
@@ -207,6 +232,83 @@
 
 			}
 
+			function getRandomInRange(min, max) {
+				return Math.random() * (max - min) + min;
+			}
+
+			function createWalkPath() {
+				const stops = 3;
+				const range = 7;
+
+				let newPath = [];
+				for(let i = 0; i < stops; i++){
+					newPath.push({ x: getRandomInRange(-range, range), z: getRandomInRange(-range, range) })
+				}
+				return newPath;
+			}
+
+			function resetWalkPath() {
+				let finalElement = { x: walkPath[walkPath.length - 1].x, z: walkPath[walkPath.length - 1].z };
+				if (walkPath) {
+					walkPath = createWalkPath();
+					walkPath[0] = finalElement;
+				}
+			}
+
+			function crabWalk(delta) {
+				// Simulate walking along the defined path
+				const walkSpeed = 0.005; // Adjust the speed of walking here
+
+				if (walkTime >= 1) {
+					walkTime = 0; // Restart walking
+					resetWalkPath();
+				} else {
+					walkTime += walkSpeed;
+				}
+
+				// Interpolate the position along the path
+				const currentWalkIndex = Math.floor(walkTime * (walkPath.length - 1));
+				const nextWalkIndex = currentWalkIndex + 1;
+			
+				const t = walkTime * (walkPath.length - 1) - currentWalkIndex;
+
+				const currentPos = walkPath[currentWalkIndex];
+				let nextPos = walkPath[nextWalkIndex];
+				if (!nextPos) {
+					nextPos = currentPos;
+				}
+
+				const xPos = currentPos.x + (nextPos.x - currentPos.x) * t;
+				const zPos = currentPos.z + (nextPos.z - currentPos.z) * t;
+				crab.position.set(xPos, crab.position.y, zPos);
+
+				// Calculate the angle between current and next positions
+				const deltaX = nextPos.x - currentPos.x;
+				const deltaZ = nextPos.z - currentPos.z;
+				const angle = Math.atan2(deltaZ, deltaX);
+
+				// Convert the angle to Euler angles and set the object's rotation
+				const euler = new THREE.Euler(0, -angle + Math.PI / 2, 0);
+				crab.rotation.copy(euler);
+			}
+
+			function updateCrab(delta) {
+				crabWalk();
+
+				// Set up raycaster to detect the position on the surface
+				raycaster.set(crab.position, new THREE.Vector3(0, -1, 0)); // Pointing downward
+
+				// Intersect the ray with the surface
+				const intersects = raycaster.intersectObject(island);
+
+				if (intersects.length > 0) {
+					const intersectionPoint = intersects[0].point;
+					crab.position.set(crab.position.x, intersectionPoint.y + 0.45, crab.position.z);
+				}
+
+				crabMixer.update(delta);
+			}
+
 			function onWindowResize() {
 
 				camera.aspect = window.innerWidth / window.innerHeight;
@@ -217,7 +319,7 @@
 			}
 
 			function animate() {
-
+				let delta = clock.getDelta();
 				requestAnimationFrame( animate );
 				render();
 				stats.update();
@@ -226,6 +328,9 @@
 				if (minutes !== currMinutes) {
 					updateSun();
 					currMinutes = minutes;
+				}
+				if (crab && island) {
+					updateCrab(delta);
 				}
 			}
 
