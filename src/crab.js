@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
 import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
+import crabGlb from "../assets/3d/screencrab.glb"
 
 class MultiLineText {
   constructor(
@@ -71,7 +72,7 @@ export const Crab = class {
     this.walkPath = this.createWalkPath();
     this.island = island;
 
-    gltfLoader.load("./glb/screencrab.glb", (gltf) => {
+    gltfLoader.load(crabGlb, (gltf) => {
       gltf.scene.traverse((object) => {
         if (object.isMesh) object.castShadow = true;
       });
@@ -94,7 +95,7 @@ export const Crab = class {
   }
 
   addDecal(scene) {
-    new FontLoader().load("fonts/helvetiker_regular.typeface.json", (font) => {
+    new FontLoader().load(import.meta.env.BASE_URL + 'helvetiker_regular.typeface.json', (font) => {
       const textArray = ["crab.com", "by", "drawvid", "test", "test"];
       const position = new THREE.Vector3(
         this.crabObject.position.x,
@@ -179,12 +180,14 @@ export const Crab = class {
       );
     }
 
-    this.multiLineText.group.position.set(
-      this.crabObject.position.x + (this.currentUnitVector.x * 0.8),
-      this.crabObject.position.y + 0.80,
-      this.crabObject.position.z + (this.currentUnitVector.y * 0.8)
-    );
-    this.multiLineText.group.rotation.copy(this.crabObject.rotation);
+    if (this.multiLineText) {
+      this.multiLineText.group.position.set(
+        this.crabObject.position.x + (this.currentUnitVector.x * 0.8),
+        this.crabObject.position.y + 0.80,
+        this.crabObject.position.z + (this.currentUnitVector.y * 0.8)
+      );
+      this.multiLineText.group.rotation.copy(this.crabObject.rotation);
+    }
     this.crabMixer.update(delta);
   };
 

@@ -6,6 +6,8 @@ import { Sky } from "three/addons/objects/Sky.js";
 
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { Crab } from "./crab.js";
+import waterNormals from "../assets/textures/waternormals.jpg"
+import paradiseGlb from "../assets/3d/paradise.glb"
 
 export const Paradise = class {
   constructor() {
@@ -41,7 +43,7 @@ export const Paradise = class {
       textureWidth: 512,
       textureHeight: 512,
       waterNormals: new THREE.TextureLoader().load(
-        "textures/waternormals.jpg",
+        waterNormals,
         (texture) => {
           texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         }
@@ -75,7 +77,7 @@ export const Paradise = class {
     var islandX = 0,
       islandY = 0,
       islandZ = 0;
-    gltfLoader.load("./glb/paradise.glb", (gltf) => {
+    gltfLoader.load(paradiseGlb, (gltf) => {
       gltf.scene.traverse((object) => {
         if (object.isMesh) object.castShadow = true;
       });
