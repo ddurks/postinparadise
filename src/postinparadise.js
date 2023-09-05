@@ -3,18 +3,18 @@ import * as THREE from "three";
 import { Paradise } from './paradise.js';
 
 THREE.DefaultLoadingManager.onLoad = () => {
-  document.getElementById("loading").outerHTML = "";
+  if (document.getElementById("loading")) {
+    document.getElementById("loading").outerHTML = "";
+  }
   animate();
 };
 
-const clock = new THREE.Clock();
 const paradise = new Paradise();
 
 const animate = () => {
-  let delta = clock.getDelta();
   requestAnimationFrame(animate);
   render();
-  paradise.animate(delta);
+  paradise.animate(paradise.clock.getDelta());
 };
 
 const render = () => {

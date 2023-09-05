@@ -66,7 +66,7 @@ export const Crab = class {
     return newPath;
   };
 
-  constructor(gltfLoader, scene, island) {
+  constructor(gltfLoader, scene, island, text) {
     this.animationsMap = new Map();
     this.walkTime = 0;
     this.walkPath = this.createWalkPath();
@@ -84,7 +84,7 @@ export const Crab = class {
       );
       scene.add(this.crabObject);
 
-      this.addDecal(scene);
+      this.addDecal(scene, text);
 
       this.crabMixer = new THREE.AnimationMixer(this.crabObject);
       gltf.animations.forEach((a) => {
@@ -94,15 +94,31 @@ export const Crab = class {
     });
   }
 
-  addDecal(scene) {
+  formatText = (text) => {
+    let fifth = 12
+    let textArray = [];
+    let numberOfLines = 0;
+    for (let i = 0; i < text.length - 1; i+=fifth) {
+      numberOfLines++;
+      if (numberOfLines > 5) {
+        textArray[4] += ('. . .')
+        break;
+      }
+      textArray.push(text.substring(i, i + fifth));
+    }
+    return textArray;
+  };
+
+  addDecal = (scene, text) => {
     new FontLoader().load(import.meta.env.BASE_URL + 'helvetiker_regular.typeface.json', (font) => {
-      const textArray = ["crab.com", "by", "drawvid", "test", "test"];
+      // const textArray = ["crab.com", "by", "drawvid", "test", "test"];
+      const textArray = this.formatText(text);
       const position = new THREE.Vector3(
         this.crabObject.position.x,
-        this.crabObject.position.y + 2,
+        this.crabObject.position.y + 0.80,
         this.crabObject.position.z
       ); // Center point
-      this.multiLineText = new MultiLineText(textArray, position, font, 0.1, 0.15);
+      this.multiLineText = new MultiLineText(textArray, position, font, 0.1, 0.16);
       this.multiLineText.addToScene(scene);
       this.multiLineText.group.rotation.copy(this.crabObject.rotation);
     });
@@ -165,30 +181,32 @@ export const Crab = class {
   };
 
   updateCrab = (raycaster, delta) => {
-    this.crabWalk();
+    if (this.crabObject) {
+      this.crabWalk();
 
-    raycaster.set(this.crabObject.position, new THREE.Vector3(0, -1, 0)); // Pointing downward
+      raycaster.set(this.crabObject.position, new THREE.Vector3(0, -1, 0)); // Pointing downward
 
-    const intersects = raycaster.intersectObject(this.island);
+      const intersects = raycaster.intersectObject(this.island);
 
-    if (intersects.length > 0) {
-      const intersectionPoint = intersects[0].point;
-      this.crabObject.position.set(
-        this.crabObject.position.x,
-        intersectionPoint.y + 0.45,
-        this.crabObject.position.z
-      );
+      if (intersects.length > 0) {
+        const intersectionPoint = intersects[0].point;
+        this.crabObject.position.set(
+          this.crabObject.position.x,
+          intersectionPoint.y + 0.45,
+          this.crabObject.position.z
+        );
+      }
+
+      if (this.multiLineText) {
+        this.multiLineText.group.position.set(
+          this.crabObject.position.x + (this.currentUnitVector.x * 0.8),
+          this.crabObject.position.y + 0.80,
+          this.crabObject.position.z + (this.currentUnitVector.y * 0.8)
+        );
+        this.multiLineText.group.rotation.copy(this.crabObject.rotation);
+      }
+      this.crabMixer.update(delta);
     }
-
-    if (this.multiLineText) {
-      this.multiLineText.group.position.set(
-        this.crabObject.position.x + (this.currentUnitVector.x * 0.8),
-        this.crabObject.position.y + 0.80,
-        this.crabObject.position.z + (this.currentUnitVector.y * 0.8)
-      );
-      this.multiLineText.group.rotation.copy(this.crabObject.rotation);
-    }
-    this.crabMixer.update(delta);
   };
 
   getUnitVector2D = (positionA, positionB) => {

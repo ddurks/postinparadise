@@ -11,9 +11,9 @@ import paradiseGlb from "../assets/3d/paradise.glb"
 
 export const Paradise = class {
   constructor() {
+    this.clock = new THREE.Clock();
     this.animationsMap = new Map();
-    this.walkTime = 0;
-    this.walkPath = [];
+    this.crabs = [];
     this.container = document.getElementById("container");
 
     this.renderer = new THREE.WebGLRenderer();
@@ -94,8 +94,14 @@ export const Paradise = class {
 
       // Set up raycaster for detecting the surface position
       this.raycaster = new THREE.Raycaster();
-      this.crab = new Crab(gltfLoader, this.scene, this.island);
     });
+
+    setInterval(() => {
+      if (this.crabs.length < 5) {
+        this.crabs.push(new Crab(gltfLoader, this.scene, this.island, 'hi my name is david it is so very nice to be online, right?'));
+        console.log('new crab. crab count: ', this.crabs.length);
+      }
+    }, 5000);
 
     this.pmremGenerator = new THREE.PMREMGenerator(this.renderer);
     let renderTarget;
@@ -136,17 +142,20 @@ export const Paradise = class {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   };
 
-  animate = (delta) => {
-    if (this.crab && this.island) {
-      this.crab.updateCrab(this.raycaster, delta);
+  updateCrabs = (delta) => {
+    if (this.crabs.length > 0 && this.island) {
+      this.crabs.forEach((crab) => {
+        crab.updateCrab(this.raycaster, delta);
+      })
     }
+  }
+
+  animate = (delta) => {
+    this.updateCrabs(delta)
   };
 
   render = () => {
-    const time = performance.now() * 0.001;
-
     this.water.material.uniforms["time"].value += 1.0 / 60.0;
-
     this.renderer.render(this.scene, this.camera);
   };
 };
