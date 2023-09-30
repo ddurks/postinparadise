@@ -2,11 +2,15 @@ import * as THREE from "three";
 
 import { Paradise } from './paradise.js';
 
+var isAnimating = false;
 THREE.DefaultLoadingManager.onLoad = () => {
   if (document.getElementById("loading")) {
     document.getElementById("loading").outerHTML = "";
   }
-  animate();
+  if(!isAnimating) {
+    animate();
+    isAnimating = true;
+  }
 };
 
 const paradise = new Paradise();

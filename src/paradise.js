@@ -97,11 +97,11 @@ export const Paradise = class {
     });
 
     setInterval(() => {
-      if (this.crabs.length < 5) {
+      if (this.crabs.length < 25) {
         this.crabs.push(new Crab(gltfLoader, this.scene, this.island, 'hi my name is david it is so very nice to be online, right?'));
         console.log('new crab. crab count: ', this.crabs.length);
       }
-    }, 5000);
+    }, 100);
 
     this.pmremGenerator = new THREE.PMREMGenerator(this.renderer);
     let renderTarget;

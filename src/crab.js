@@ -79,7 +79,7 @@ export const Crab = class {
       this.crabObject = gltf.scene.getObjectByName("Armature");
       this.crabObject.position.set(
         this.island.position.x + 1,
-        this.island.position.y + 10,
+        this.island.position.y + 5,
         this.island.position.z + 1
       );
       scene.add(this.crabObject);
@@ -126,6 +126,12 @@ export const Crab = class {
 
   getRandomInRange = (min, max) => {
     return Math.random() * (max - min) + min;
+  };
+
+  getRandomInt = (min, max) => {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
   };
 
   resetWalkPath = () => {
@@ -180,7 +186,16 @@ export const Crab = class {
     this.crabObject.rotation.copy(euler);
   };
 
+  scaleCrab = () => {
+    this.crabObject.scale.x += .05;
+    this.crabObject.scale.y += .05;
+    this.crabObject.scale.z += .05;
+  }
+
   updateCrab = (raycaster, delta) => {
+    if (this.getRandomInt(1,50) === 2) {
+      this.scaleCrab();
+    }
     if (this.crabObject) {
       this.crabWalk();
 
@@ -199,9 +214,9 @@ export const Crab = class {
 
       if (this.multiLineText) {
         this.multiLineText.group.position.set(
-          this.crabObject.position.x + (this.currentUnitVector.x * 0.8),
-          this.crabObject.position.y + 0.80,
-          this.crabObject.position.z + (this.currentUnitVector.y * 0.8)
+          this.crabObject.position.x + (this.currentUnitVector.x * 0.8 * this.crabObject.scale.x),
+          this.crabObject.position.y + (0.80 * this.crabObject.scale.y),
+          this.crabObject.position.z + (this.currentUnitVector.y * 0.8 * this.crabObject.scale.z)
         );
         this.multiLineText.group.rotation.copy(this.crabObject.rotation);
       }
