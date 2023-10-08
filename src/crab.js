@@ -1,8 +1,11 @@
 import * as THREE from "three";
+import * as CANNON from "cannon";
 
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
 import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
-import crabGlb from "../assets/3d/screencrab.glb"
+import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
+
+import crabGlb from "../assets/3d/screencrab.glb";
 
 class MultiLineText {
   constructor(
@@ -13,48 +16,40 @@ class MultiLineText {
     lineHeight = 1.2,
     color = 0x00ff00
   ) {
-    this.group = new THREE.Group();
-    this.position = position;
-
     const textMaterial = new THREE.MeshBasicMaterial({ color });
-    this.textMeshes = [];
+    const geometries = [];
 
     for (let i = 0; i < textArray.length; i++) {
       const textGeometry = new TextGeometry(textArray[i], {
         font,
         size,
-        height: 0.02, // Adjust the extrusion thickness as needed
+        height: 0.02,
       });
 
-      textGeometry.computeBoundingBox(); // Calculate the bounding box
+      textGeometry.computeBoundingBox();
 
-      const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-
-      // Center the text horizontally
       const textWidth =
         textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
-      textMesh.position.x = -textWidth / 2;
 
-      // Position each line of text vertically
-      textMesh.position.y = -i * lineHeight;
-
-      this.group.add(textMesh);
-      this.textMeshes.push(textMesh);
+      textGeometry.translate(-textWidth / 2, -i * lineHeight, 0);
+      geometries.push(textGeometry);
     }
 
-    // Set the overall position of the group
-    this.group.position.copy(position);
+    const mergedGeometry = BufferGeometryUtils.mergeGeometries(geometries);
+    this.mesh = new THREE.Mesh(mergedGeometry, textMaterial);
+
+    this.mesh.position.copy(position);
   }
 
   addToScene(scene) {
-    scene.add(this.group);
+    scene.add(this.mesh);
   }
 }
 
 export const Crab = class {
   createWalkPath = () => {
     const stops = 3;
-    const range = 7;
+    const range = 20;
 
     let newPath = [];
     for (let i = 0; i < stops; i++) {
@@ -66,25 +61,51 @@ export const Crab = class {
     return newPath;
   };
 
-  constructor(gltfLoader, scene, island, text) {
+  constructor(gltfLoader, scene, world, position, text, index) {
     this.animationsMap = new Map();
     this.walkTime = 0;
     this.walkPath = this.createWalkPath();
-    this.island = island;
+    this.isWalking = true;
+    this.stopDuration = 0;
+    this.elapsedStopTime = 0;
+    this.scene = scene;
+    this.world = world;
+
+    this.boxShape = new CANNON.Box(new CANNON.Vec3(0.75, 0.75, 0.75));
+    const slipperyMaterial = new CANNON.Material("slippery");
+    slipperyMaterial.friction = 0;
+    this.crabBody = new CANNON.Body({
+      mass: 1,
+      material: slipperyMaterial,
+    });
+    this.crabBody.addShape(this.boxShape);
+    this.crabBody.position.copy(position);
+    this.crabBody.linearDamping = 0.999;
 
     gltfLoader.load(crabGlb, (gltf) => {
       gltf.scene.traverse((object) => {
         if (object.isMesh) object.castShadow = true;
       });
       this.crabObject = gltf.scene.getObjectByName("Armature");
-      this.crabObject.position.set(
-        this.island.position.x + 1,
-        this.island.position.y + 5,
-        this.island.position.z + 1
-      );
-      scene.add(this.crabObject);
+      this.crabObject.position.set(position.x, position.y, position.z);
+      this.crabObject.traverse((child) => {
+        if (child instanceof THREE.SkinnedMesh) {
+          child.postContent = text;
+          child.index = index;
+        }
+      });
+      this.scene.add(this.crabObject);
 
-      this.addDecal(scene, text);
+      this.crabBody.position.set(
+        this.crabObject.position.x,
+        this.crabObject.position.y,
+        this.crabObject.position.z
+      );
+      world.addBody(this.crabBody);
+
+      if (text) {
+        this.addDecal(this.scene, text);
+      }
 
       this.crabMixer = new THREE.AnimationMixer(this.crabObject);
       gltf.animations.forEach((a) => {
@@ -95,13 +116,14 @@ export const Crab = class {
   }
 
   formatText = (text) => {
-    let fifth = 12
+    console.log(text);
+    let fifth = 12;
     let textArray = [];
     let numberOfLines = 0;
-    for (let i = 0; i < text.length - 1; i+=fifth) {
+    for (let i = 0; i < text.length - 1; i += fifth) {
       numberOfLines++;
       if (numberOfLines > 5) {
-        textArray[4] += ('. . .')
+        textArray[4] += ". . .";
         break;
       }
       textArray.push(text.substring(i, i + fifth));
@@ -110,19 +132,35 @@ export const Crab = class {
   };
 
   addDecal = (scene, text) => {
-    new FontLoader().load(import.meta.env.BASE_URL + 'helvetiker_regular.typeface.json', (font) => {
-      // const textArray = ["crab.com", "by", "drawvid", "test", "test"];
-      const textArray = this.formatText(text);
-      const position = new THREE.Vector3(
-        this.crabObject.position.x,
-        this.crabObject.position.y + 0.80,
-        this.crabObject.position.z
-      ); // Center point
-      this.multiLineText = new MultiLineText(textArray, position, font, 0.1, 0.16);
-      this.multiLineText.addToScene(scene);
-      this.multiLineText.group.rotation.copy(this.crabObject.rotation);
-    });
-  }
+    new FontLoader().load(
+      import.meta.env.BASE_URL + "helvetiker_regular.typeface.json",
+      (font) => {
+        const textArray = this.formatText(text);
+        const position = new THREE.Vector3(
+          this.crabObject.position.x,
+          this.crabObject.position.y + 0.8,
+          this.crabObject.position.z
+        );
+        this.multiLineText = new MultiLineText(
+          textArray,
+          position,
+          font,
+          0.1,
+          0.16
+        );
+        this.multiLineText.addToScene(scene);
+      }
+    );
+  };
+
+  setSelected = (isSelected) => {
+    if (isSelected) {
+      this.box = new THREE.BoxHelper(this.crabObject, 0x00ff00);
+      this.scene.add(this.box);
+    } else {
+      this.scene.remove(this.box);
+    }
+  };
 
   getRandomInRange = (min, max) => {
     return Math.random() * (max - min) + min;
@@ -143,94 +181,157 @@ export const Crab = class {
       this.walkPath = this.createWalkPath();
       this.walkPath[0] = finalElement;
     }
+
+    if (Math.random() < 0.25) {
+      this.isWalking = false;
+      this.animationsMap.get("walk").stop();
+      this.stopDuration = Math.random() * 10;
+      this.elapsedStopTime = 0;
+    }
   };
 
   crabWalk = (delta) => {
-    // Simulate walking along the defined path
-    const walkSpeed = 0.001; // Adjust the speed of walking here
+    if (this.isWalking) {
+      const walkSpeed = 0.01;
 
-    if (this.walkTime >= 1) {
-      this.walkTime = 0; // Restart walking
-      this.resetWalkPath();
+      if (this.walkTime >= 1) {
+        this.walkTime = 0;
+        this.resetWalkPath();
+      } else {
+        this.walkTime += walkSpeed;
+      }
+
+      const currentWalkIndex = Math.floor(
+        this.walkTime * (this.walkPath.length - 1)
+      );
+      const nextWalkIndex = currentWalkIndex + 1;
+
+      const t = this.walkTime * (this.walkPath.length - 1) - currentWalkIndex;
+
+      const currentPos = this.walkPath[currentWalkIndex];
+      let nextPos = this.walkPath[nextWalkIndex];
+      if (!nextPos) {
+        nextPos = currentPos;
+      }
+
+      this.currentUnitVector = this.getUnitVector2D(
+        new THREE.Vector2(currentPos.x, currentPos.z),
+        new THREE.Vector2(nextPos.x, nextPos.z)
+      );
+
+      const xPos = currentPos.x + (nextPos.x - currentPos.x) * t;
+      const zPos = currentPos.z + (nextPos.z - currentPos.z) * t;
+      const direction = new CANNON.Vec3(
+        xPos - this.crabBody.position.x,
+        0,
+        zPos - this.crabBody.position.z
+      );
+
+      direction.normalize();
+
+      const forceMagnitude = 50;
+      this.crabBody.applyForce(
+        direction.scale(forceMagnitude),
+        this.crabBody.position
+      );
+
+      this.syncPositions(direction);
     } else {
-      this.walkTime += walkSpeed;
+      this.elapsedStopTime += delta;
+
+      if (this.elapsedStopTime > this.stopDuration) {
+        this.isWalking = true;
+      }
     }
+  };
 
-    // Interpolate the position along the path
-    const currentWalkIndex = Math.floor(
-      this.walkTime * (this.walkPath.length - 1)
-    );
-    const nextWalkIndex = currentWalkIndex + 1;
+  setPosition = (position) => {
+    this.crabObject.position.set(position);
+    this.crabBody.position.set(position);
+  };
 
-    const t = this.walkTime * (this.walkPath.length - 1) - currentWalkIndex;
+  syncPositions = (direction) => {
+    this.crabObject.position.copy(this.crabBody.position);
+    this.crabObject.quaternion.copy(this.crabBody.quaternion);
 
-    const currentPos = this.walkPath[currentWalkIndex];
-    let nextPos = this.walkPath[nextWalkIndex];
-    if (!nextPos) {
-      nextPos = currentPos;
-    }
+    const angle = Math.atan2(direction.z, direction.x);
+    const quaternion = new CANNON.Quaternion();
+    quaternion.setFromEuler(0, -angle, 0, "XYZ");
+    this.crabBody.quaternion.copy(quaternion);
 
-    this.currentUnitVector = this.getUnitVector2D(new THREE.Vector2(currentPos.x, currentPos.z), new THREE.Vector2(nextPos.x, nextPos.z));
-
-    const xPos = currentPos.x + (nextPos.x - currentPos.x) * t;
-    const zPos = currentPos.z + (nextPos.z - currentPos.z) * t;
-    this.crabObject.position.set(xPos, this.crabObject.position.y, zPos);
-
-    // Calculate the angle between current and next positions
-    const deltaX = nextPos.x - currentPos.x;
-    const deltaZ = nextPos.z - currentPos.z;
-    const angle = Math.atan2(deltaZ, deltaX);
-
-    // Convert the angle to Euler angles and set the object's rotation
-    const euler = new THREE.Euler(0, -angle + Math.PI / 2, 0);
+    // Three.js uses a different coordinate system convention than cannon.js
+    const threeAngle = Math.atan2(-direction.z, direction.x);
+    const euler = new THREE.Euler(0, threeAngle + Math.PI / 2, 0);
     this.crabObject.rotation.copy(euler);
+
+    if (this.multiLineText) {
+      this.multiLineText.mesh.position.set(
+        this.crabBody.position.x + direction.x * 0.8 * this.crabObject.scale.x,
+        this.crabBody.position.y + 0.8 * this.crabObject.scale.y,
+        this.crabBody.position.z + direction.z * 0.8 * this.crabObject.scale.z
+      );
+      this.multiLineText.mesh.rotation.copy(euler);
+    }
+
+    if (this.box) {
+      console.log("box exists");
+      this.box.update();
+    }
   };
 
   scaleCrab = () => {
-    this.crabObject.scale.x += .05;
-    this.crabObject.scale.y += .05;
-    this.crabObject.scale.z += .05;
-  }
+    const scaleFactor = 0.3;
+    this.crabObject.scale.x += scaleFactor;
+    this.crabObject.scale.y += scaleFactor;
+    this.crabObject.scale.z += scaleFactor;
+    this.multiLineText.mesh.scale.x += scaleFactor;
+    this.multiLineText.mesh.scale.y += scaleFactor;
+    this.multiLineText.mesh.scale.z += scaleFactor;
 
-  updateCrab = (raycaster, delta) => {
-    if (this.getRandomInt(1,50) === 2) {
+    const currentScale = this.crabObject.scale.x - 0.25;
+    this.boxShape.halfExtents.x = currentScale;
+    this.boxShape.halfExtents.y = currentScale;
+    this.boxShape.halfExtents.z = currentScale;
+    this.boxShape.updateConvexPolyhedronRepresentation();
+  };
+
+  updateCrab = (delta) => {
+    if (this.getRandomInt(1, 1000) === 2) {
       this.scaleCrab();
     }
     if (this.crabObject) {
-      this.crabWalk();
-
-      raycaster.set(this.crabObject.position, new THREE.Vector3(0, -1, 0)); // Pointing downward
-
-      const intersects = raycaster.intersectObject(this.island);
-
-      if (intersects.length > 0) {
-        const intersectionPoint = intersects[0].point;
-        this.crabObject.position.set(
-          this.crabObject.position.x,
-          intersectionPoint.y + 0.45,
-          this.crabObject.position.z
-        );
-      }
-
-      if (this.multiLineText) {
-        this.multiLineText.group.position.set(
-          this.crabObject.position.x + (this.currentUnitVector.x * 0.8 * this.crabObject.scale.x),
-          this.crabObject.position.y + (0.80 * this.crabObject.scale.y),
-          this.crabObject.position.z + (this.currentUnitVector.y * 0.8 * this.crabObject.scale.z)
-        );
-        this.multiLineText.group.rotation.copy(this.crabObject.rotation);
-      }
+      this.crabWalk(delta);
       this.crabMixer.update(delta);
     }
   };
 
   getUnitVector2D = (positionA, positionB) => {
-    // Calculate the vector from A to B
     const directionVector = new THREE.Vector2();
     directionVector.subVectors(positionB, positionA);
 
-    // Normalize the vector to get a unit vector
     const unitVector = new THREE.Vector2();
     return unitVector.copy(directionVector).normalize();
+  };
+
+  remove = () => {
+    if (this.crabObject) {
+      this.scene.remove(this.crabObject);
+      this.crabObject = null;
+    }
+
+    if (this.multiLineText) {
+      this.scene.remove(this.multiLineText);
+      this.multiLineText = null;
+    }
+
+    if (this.crabBody) {
+      this.world.removeBody(this.crabBody);
+      this.crabBody = null;
+    }
+
+    if (this.crabMixer) {
+      this.crabMixer.stopAllAction();
+      this.crabMixer = null;
+    }
   };
 };

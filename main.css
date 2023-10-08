@@ -1,119 +1,116 @@
 body {
-	margin: 0;
-	background-color: #000;
-	color: #fff;
-	font-family: Monospace;
-	font-size: 13px;
-	line-height: 24px;
-	overscroll-behavior: none;
+  margin: 0;
+  background-color: #000;
+  color: #fff;
+  font-family: Monospace;
+  font-size: 13px;
+  line-height: 24px;
+  overscroll-behavior: none;
 }
 
-a {
-	color: #ff0;
-	text-decoration: none;
+body,
+html {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: "Courier New", monospace;
+  background-color: #222;
 }
 
-a:hover {
-	text-decoration: underline;
+#canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
 }
 
-button {
-	cursor: pointer;
-	text-transform: uppercase;
+.terminal {
+  position: absolute;
+  top: -120px; /* initially hide the terminal above the viewport */
+  transition: top 0.3s; /* smooth slide effect */
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 5px;
 }
 
-#info {
-	position: absolute;
-	bottom: 0px;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-	text-align: center;
-	-moz-user-select: none;
-	-webkit-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-	pointer-events: none;
-	z-index: 1; /* TODO Solve this in HTML */
+.command-input {
+  padding: 10px;
+  color: #0f0;
+  background-color: rgba(17, 17, 17, 0.7);
+  border: 2px solid #0f0;
+  outline: none;
+  border-radius: 3px;
+  width: 300px;
 }
 
-a, button, input, select {
-	pointer-events: auto;
+.submit-btn {
+  margin-left: 10px;
+  padding: 10px 20px;
+  background-color: #444;
+  color: #0f0;
+  border: none;
+  cursor: pointer;
+  border-radius: 3px;
 }
 
-.lil-gui {
-	z-index: 2 !important; /* TODO Solve this in HTML */
+.submit-btn:hover {
+  background-color: #555;
 }
 
-@media all and ( max-width: 640px ) {
-	.lil-gui.root { 
-		right: auto;
-		top: auto;
-		max-height: 50%;
-		max-width: 80%;
-		bottom: 0;
-		left: 0;
-	}
+.toggle-tab {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 15px;
+  background-color: #333;
+  color: #0f0;
+  cursor: pointer;
+  border-radius: 3px;
+  z-index: 100; /* Make sure it's above the terminal */
 }
 
-#overlay {
-	position: absolute;
-	font-size: 16px;
-	z-index: 2;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex-direction: column;
-	background: rgba(0,0,0,0.7);
+.toggle-tab:hover {
+  background-color: #444;
 }
 
-	#overlay button {
-		background: transparent;
-		border: 0;
-		border: 1px solid rgb(255, 255, 255);
-		border-radius: 4px;
-		color: #ffffff;
-		padding: 12px 18px;
-		text-transform: uppercase;
-		cursor: pointer;
-	}
-
-#notSupported {
-	width: 50%;
-	margin: auto;
-	background-color: #f00;
-	margin-top: 20px;
-	padding: 10px;
+.arrow {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 2rem;
+  cursor: pointer;
+  z-index: 1000;
+  user-select: none;
 }
 
-button.login {
-	z-index: 2147483647;
-	position: absolute;
-	top:0;
-	right: 0;
-	background: #7C7C7C;
-	border-bottom: 6px inset rgba(0,0,0,.5);
-	border-left: 6px inset rgba(0,0,0,.5);
-	border-right: 6px inset rgba(255,255,255,.5);
-	border-top: 6px inset rgba(255,255,255,.5);
-	box-sizing: border-box;
-	color: white;
-	cursor: pointer;
-	display: inline-block;
-	font-size: 2.2rem;
-	margin: 1rem;
-	padding: 1rem;
-	width: auto;
-	border-radius: 25%;
+#leftArrow {
+  left: 1%;
+}
+#rightArrow {
+  right: 1%;
 }
 
-#loading {
-    width: 100%;
-    display: block;
-    position: absolute;
-    top: 40%;
+#crabListOverlay {
+	display: none;
+}
+
+#crabList {
+  display: flex;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  pointer-events: auto;
+  z-index: 10;
+  scroll-behavior: smooth;
+}
+
+img {
+  width: 33%;
+}
+
+.selected {
+    background-color: rgba(0, 255, 0, 0.5);  /* semi-transparent white */
+    border-radius: 15px;  /* adjust as needed */
 }

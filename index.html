@@ -1,17 +1,38 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-	<head>
-		<title>post in paradise</title>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<link type="text/css" rel="stylesheet" href="main.css">
-	</head>
-	<body>
-		<img id="loading" src="assets/textures/loading.gif">
-		<div id="container"></div>
-		<div id="info">
-			<a href="http://postinparadise.com" target="_blank" rel="noopener">post in paradise</a>
-		</div>
-		<script type="module" src="./src/postinparadise.js"></script>
-	</body>
+  <head>
+    <title>post in paradise</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <link type="text/css" rel="stylesheet" href="main.css" />
+    <link rel="icon" href="/favicon.ico" />
+  </head>
+  <body>
+    <img id="loading" src="assets/textures/loading.gif" />
+    <div id="terminal" class="terminal">
+      <input
+        type="text"
+        id="commandInput"
+        class="command-input"
+        placeholder="Post something 👀..."
+      />
+      <button id="submitBtn" class="submit-btn">publish 🌴</button>
+    </div>
+	<div id="crabListOverlay">
+		<div id="leftArrow" class="arrow">&#8592;</div>
+		<div id="crabList"></div>
+		<div id="rightArrow" class="arrow">&#8594;</div>
+	</div>
+    <div id="toggleTab" class="toggle-tab">⬇️ post in paradise ⬇️</div>
+    <div id="container"></div>
+    <div id="info">
+      <a href="http://postinparadise.com" target="_blank" rel="noopener"
+        >post in paradise</a
+      >
+    </div>
+    <script type="module" src="./src/postinparadise.js"></script>
+  </body>
 </html>
