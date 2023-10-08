@@ -72,19 +72,24 @@ export const Paradise = class {
           img.src = "assets/textures/crab.png";
           this.crabList.appendChild(img);
           console.log(this.crabs.length, this.crabList.children.length);
-          img.addEventListener("click", (event) => {
-            event.stopPropagation();
+          document
+            .getElementById("crabList")
+            .addEventListener("click", (event) => {
+              event.stopPropagation();
 
-            console.log(this.crabs.length, this.crabList.children.length);
-            this.crabs.forEach((crab, index) => {
-              crab.selected = false;
-              if (this.crabList.children[index]) {
-                this.crabList.children[index].classList.remove("selected");
-              }
+              console.log(this.crabs.length, this.crabList.children.length);
+              this.crabs.forEach((crab, index) => {
+                crab.setSelected(false);
+                if (this.crabList.children[index]) {
+                  this.crabList.children[index].classList.remove("selected");
+                }
+              });
+              const index = Array.from(event.currentTarget.children).indexOf(
+                event.target
+              );
+              this.crabList.children[index].classList.add("selected");
+              this.crabs[index].setSelected(true);
             });
-            img.selected = true;
-            img.classList.add("selected");
-          });
         });
       })
       .catch((error) => {
