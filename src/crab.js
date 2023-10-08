@@ -116,7 +116,6 @@ export const Crab = class {
   }
 
   formatText = (text) => {
-    console.log(text);
     let fifth = 12;
     let textArray = [];
     let numberOfLines = 0;
@@ -274,7 +273,6 @@ export const Crab = class {
     }
 
     if (this.box) {
-      console.log("box exists");
       this.box.update();
     }
   };

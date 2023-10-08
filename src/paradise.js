@@ -41,7 +41,6 @@ export const Paradise = class {
     );
     this.floorBody.position.set(0, 1.5, 0);
     this.world.addBody(this.floorBody);
-    console.log("GET POSTS");
     // ClientService.addPost("welcome to paradise. created by drawvid").then(postId => {
     //   console.log('Post added with ID:', postId);
     // })
@@ -51,7 +50,6 @@ export const Paradise = class {
     this.crabList = document.getElementById("crabList");
     ClientService.getPosts()
       .then((postsData) => {
-        console.log(postsData.posts.length);
         postsData.posts.forEach((post, index) => {
           let range = 15;
           this.crabs.push(
@@ -71,25 +69,6 @@ export const Paradise = class {
           let img = document.createElement("img");
           img.src = "assets/textures/crab.png";
           this.crabList.appendChild(img);
-          console.log(this.crabs.length, this.crabList.children.length);
-          document
-            .getElementById("crabList")
-            .addEventListener("click", (event) => {
-              event.stopPropagation();
-
-              console.log(this.crabs.length, this.crabList.children.length);
-              this.crabs.forEach((crab, index) => {
-                crab.setSelected(false);
-                if (this.crabList.children[index]) {
-                  this.crabList.children[index].classList.remove("selected");
-                }
-              });
-              const index = Array.from(event.currentTarget.children).indexOf(
-                event.target
-              );
-              this.crabList.children[index].classList.add("selected");
-              this.crabs[index].setSelected(true);
-            });
         });
       })
       .catch((error) => {
@@ -189,6 +168,22 @@ export const Paradise = class {
       event.stopPropagation();
       this.crabList.scrollLeft += scrollAmount;
     });
+    document.getElementById("crabList").addEventListener("click", (event) => {
+      event.stopPropagation();
+
+      console.log(this.crabs.length, this.crabList.children.length);
+      this.crabs.forEach((crab, index) => {
+        crab.setSelected(false);
+        if (this.crabList.children[index]) {
+          this.crabList.children[index].classList.remove("selected");
+        }
+      });
+      const index = Array.from(event.currentTarget.children).indexOf(
+        event.target
+      );
+      this.crabList.children[index].classList.add("selected");
+      this.crabs[index].setSelected(true);
+    });
   }
 
   showOverlay = (visible) => {
@@ -231,7 +226,6 @@ export const Paradise = class {
           block: "center",
         });
       }
-      console.log(selectedObject.postContent);
     } else {
       this.showOverlay(false);
       this.crabs.forEach((crab) => crab.setSelected(false));
