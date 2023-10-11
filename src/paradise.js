@@ -11,6 +11,10 @@ import waterNormals from "../assets/textures/waternormals.jpg";
 import paradiseGlb from "../assets/3d/paradise.glb";
 import { ClientService } from "./service.js";
 
+const isMobileDevice = () => {
+  return window.innerWidth <= 768; // You can adjust the width threshold as needed
+};
+
 export const Paradise = class {
   constructor() {
     this.clock = new THREE.Clock();
@@ -66,9 +70,18 @@ export const Paradise = class {
               index
             )
           );
+          let imgDiv = document.createElement("div");
+          imgDiv.className = "imageWrapper";
+          imgDiv.style.width = isMobileDevice() ? "85%" : "30%";
           let img = document.createElement("img");
           img.src = "assets/textures/crab.png";
-          this.crabList.appendChild(img);
+          img.className = "responsiveImage";
+          imgDiv.append(img);
+          let text = document.createElement("div");
+          text.textContent = post.content;
+          text.className = "responsiveText";
+          imgDiv.append(text);
+          this.crabList.appendChild(imgDiv);
         });
       })
       .catch((error) => {
@@ -178,11 +191,14 @@ export const Paradise = class {
           this.crabList.children[index].classList.remove("selected");
         }
       });
-      const index = Array.from(event.currentTarget.children).indexOf(
-        event.target
-      );
-      this.crabList.children[index].classList.add("selected");
-      this.crabs[index].setSelected(true);
+      if (event.target.tagName === "IMG") {
+        const imgWrapper = event.target.parentElement;
+        const index = Array.from(event.currentTarget.children).indexOf(
+          imgWrapper
+        );
+        this.crabList.children[index].classList.add("selected");
+        this.crabs[index].setSelected(true);
+      }
     });
   }
 
@@ -219,7 +235,9 @@ export const Paradise = class {
       this.crabs[selectedObject.index].setSelected(true);
       this.crabList.children[selectedObject.index].classList.add("selected");
 
-      const selectedImage = this.crabList.querySelector("img.selected");
+      const selectedImage = this.crabList.querySelector(
+        "div.imageWrapper.selected"
+      );
       if (selectedImage) {
         selectedImage.scrollIntoView({
           behavior: "smooth",

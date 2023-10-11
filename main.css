@@ -1,20 +1,13 @@
+@font-face {
+  font-family: 'Arco';
+  src: url('assets/font/ARCO.ttf') format('truetype');
+}
+
 body {
   margin: 0;
   background-color: #000;
-  color: #fff;
-  font-family: Monospace;
-  font-size: 13px;
-  line-height: 24px;
+  font-family: 'Arial';
   overscroll-behavior: none;
-}
-
-body,
-html {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  font-family: "Courier New", monospace;
-  background-color: #222;
 }
 
 #canvas {
@@ -44,7 +37,8 @@ html {
 }
 
 .submit-btn {
-  margin-left: 10px;
+  margin-left: 65%;
+  margin-top: 10px;
   padding: 10px 20px;
   background-color: #444;
   color: #0f0;
@@ -106,8 +100,27 @@ html {
   scroll-behavior: smooth;
 }
 
-img {
+.imageWrapper {
   width: 33%;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.responsiveImage {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.responsiveText {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); 
+  color: #0f0;
+  text-align: center;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 .selected {
