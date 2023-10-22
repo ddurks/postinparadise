@@ -197,6 +197,7 @@ export const Crab = class {
     if (Math.random() < 0.25) {
       this.isWalking = false;
       this.animationsMap.get("walk").stop();
+      this.animationsMap.get("idle").fadeIn(1).play();
       this.stopDuration = Math.random() * 10;
       this.elapsedStopTime = 0;
     }
@@ -252,6 +253,7 @@ export const Crab = class {
       this.elapsedStopTime += delta;
 
       if (this.elapsedStopTime > this.stopDuration) {
+        this.animationsMap.get("walk").fadeIn(1).play();
         this.isWalking = true;
       }
     }
