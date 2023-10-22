@@ -2,8 +2,27 @@ const API_BASE_URL = "https://postinparadise.com"; // Adjust to your server's UR
 
 export const ClientService = {
   // Fetch all posts
+  getUserId: async () => {
+    const response = await fetch(`${API_BASE_URL}/userId`);
+    if (!response.ok) {
+      throw new Error(`Failed with status: ${response.status}`);
+    }
+    return await response.json();
+  },
+
+  // Fetch all posts
   getPosts: async () => {
     const response = await fetch(`${API_BASE_URL}/posts`);
+    if (!response.ok) {
+      throw new Error(`Failed with status: ${response.status}`);
+    }
+    return await response.json();
+  },
+
+  // Fetch a post by userId
+  getPostsById: async (userId) => {
+    console.log(userId);
+    const response = await fetch(`${API_BASE_URL}/posts/${userId}`);
     if (!response.ok) {
       throw new Error(`Failed with status: ${response.status}`);
     }

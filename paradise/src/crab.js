@@ -61,7 +61,16 @@ export const Crab = class {
     return newPath;
   };
 
-  constructor(gltfLoader, scene, world, position, text, index) {
+  constructor(
+    gltfLoader,
+    scene,
+    world,
+    position,
+    text,
+    index,
+    color,
+    scale = 1.0
+  ) {
     this.animationsMap = new Map();
     this.walkTime = 0;
     this.walkPath = this.createWalkPath();
@@ -92,6 +101,9 @@ export const Crab = class {
         if (child instanceof THREE.SkinnedMesh) {
           child.postContent = text;
           child.index = index;
+          if (child.material.name === "crabred") {
+            child.material.color.set(color);
+          }
         }
       });
       this.scene.add(this.crabObject);
@@ -104,7 +116,7 @@ export const Crab = class {
       world.addBody(this.crabBody);
 
       if (text) {
-        this.addDecal(this.scene, text);
+        this.addDecal(this.scene, text, scale);
       }
 
       this.crabMixer = new THREE.AnimationMixer(this.crabObject);
@@ -130,7 +142,7 @@ export const Crab = class {
     return textArray;
   };
 
-  addDecal = (scene, text) => {
+  addDecal = (scene, text, scale) => {
     new FontLoader().load(
       import.meta.env.BASE_URL + "helvetiker_regular.typeface.json",
       (font) => {
@@ -148,6 +160,7 @@ export const Crab = class {
           0.16
         );
         this.multiLineText.addToScene(scene);
+        this.scaleCrab(scale - 1.0);
       }
     );
   };
@@ -277,8 +290,7 @@ export const Crab = class {
     }
   };
 
-  scaleCrab = () => {
-    const scaleFactor = 0.3;
+  scaleCrab = (scaleFactor) => {
     this.crabObject.scale.x += scaleFactor;
     this.crabObject.scale.y += scaleFactor;
     this.crabObject.scale.z += scaleFactor;
@@ -294,9 +306,9 @@ export const Crab = class {
   };
 
   updateCrab = (delta) => {
-    if (this.getRandomInt(1, 1000) === 2) {
-      this.scaleCrab();
-    }
+    // if (this.getRandomInt(1, 1000) === 2) {
+    //   this.scaleCrab(0.3);
+    // }
     if (this.crabObject) {
       this.crabWalk(delta);
       this.crabMixer.update(delta);

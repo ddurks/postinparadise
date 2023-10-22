@@ -16,6 +16,7 @@ THREE.DefaultLoadingManager.onLoad = () => {
 document.addEventListener("visibilitychange", function () {
   if (document.hidden) {
     isAnimating = false;
+    paradise.clock.stop();
   } else {
     isAnimating = true;
     paradise.clock.start();
@@ -36,11 +37,6 @@ toggleTab.addEventListener("click", function () {
     document.getElementById("toggleTab").innerHTML = "⬆️ close ⬆️";
   }
   terminalVisible = !terminalVisible;
-});
-
-document.getElementById("submitBtn").addEventListener("click", function () {
-  const command = document.getElementById("commandInput").value;
-  console.log("Submitted command:", command);
 });
 
 const paradise = new Paradise();
