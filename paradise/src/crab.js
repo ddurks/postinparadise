@@ -65,20 +65,19 @@ export const Crab = class {
     gltfLoader,
     scene,
     world,
+    camera,
     position,
     text,
     index,
     color,
-    scale = 1.0
+    scale = 1.0,
+    handleCollision
   ) {
-    this.animationsMap = new Map();
     this.walkTime = 0;
     this.walkPath = this.createWalkPath();
-    this.isWalking = true;
-    this.stopDuration = 0;
-    this.elapsedStopTime = 0;
     this.scene = scene;
     this.world = world;
+    this.camera = camera;
 
     this.boxShape = new CANNON.Box(new CANNON.Vec3(0.75, 0.75, 0.75));
     const slipperyMaterial = new CANNON.Material("slippery");
@@ -119,11 +118,27 @@ export const Crab = class {
         this.addDecal(this.scene, text, scale);
       }
 
-      this.crabMixer = new THREE.AnimationMixer(this.crabObject);
+      this.crabBody.isWalking = true;
+      this.crabBody.stopDuration = 0;
+      this.crabBody.elapsedStopTime = 0;
+      this.crabBody.animationsMap = new Map();
+      this.crabBody.crabMixer = new THREE.AnimationMixer(this.crabObject);
+      console.log(gltf.animations);
       gltf.animations.forEach((a) => {
-        this.animationsMap.set(a.name, this.crabMixer.clipAction(a));
+        const action = this.crabBody.crabMixer.clipAction(a);
+        if (a.name === "hug") {
+          console.log("hug");
+          action.loop = THREE.LoopOnce;
+          action.clampWhenFinished = true;
+          this.crabBody.crabMixer.addEventListener("finished", (e) => {
+            if (e.action === action) {
+              action.reset();
+            }
+          });
+        }
+        this.crabBody.animationsMap.set(a.name, action);
       });
-      this.animationsMap.get("walk").fadeIn(1).play();
+      this.crabBody.animationsMap.get("walk").fadeIn(1).play();
     });
   }
 
@@ -194,17 +209,25 @@ export const Crab = class {
       this.walkPath[0] = finalElement;
     }
 
-    if (Math.random() < 0.25) {
-      this.isWalking = false;
-      this.animationsMap.get("walk").stop();
-      this.animationsMap.get("idle").fadeIn(1).play();
-      this.stopDuration = Math.random() * 10;
-      this.elapsedStopTime = 0;
+    let rand = Math.random();
+    if (rand < 0.45) {
+      this.crabBody.isWalking = false;
+      this.crabBody.crabMixer.stopAllAction();
+      this.crabBody.animationsMap.get("dance ").stop();
+      this.crabBody.animationsMap.get("walk").stop();
+      this.crabBody.animationsMap.get("idle").stop();
+      if (rand < 0.05) {
+        this.crabBody.animationsMap.get("dance ").fadeIn(1).play();
+      } else {
+        this.crabBody.animationsMap.get("idle").fadeIn(1).play();
+      }
+      this.crabBody.stopDuration = Math.random() * 10;
+      this.crabBody.elapsedStopTime = 0;
     }
   };
 
   crabWalk = (delta) => {
-    if (this.isWalking) {
+    if (this.crabBody.isWalking) {
       const walkSpeed = 0.01;
 
       if (this.walkTime >= 1) {
@@ -250,13 +273,54 @@ export const Crab = class {
 
       this.syncPositions(direction);
     } else {
-      this.elapsedStopTime += delta;
+      this.crabBody.elapsedStopTime += delta;
+      this.faceCamera();
 
-      if (this.elapsedStopTime > this.stopDuration) {
-        this.animationsMap.get("walk").fadeIn(1).play();
-        this.isWalking = true;
+      if (this.crabBody.elapsedStopTime > this.crabBody.stopDuration) {
+        this.crabBody.animationsMap.get("walk").fadeIn(1).play();
+        this.crabBody.isWalking = true;
       }
     }
+  };
+
+  faceCamera = () => {
+    // Rotate crab to face the camera:
+    const crabPosition = new THREE.Vector3(
+      this.crabBody.position.x,
+      0,
+      this.crabBody.position.z
+    );
+    const directionToCamera = this.camera.position
+      .clone()
+      .sub(crabPosition)
+      .normalize();
+
+    const crabForward = new THREE.Vector3(1, 0, 0); // Assuming crab's initial forward is along the x-axis
+    var rotationAngle = crabForward.angleTo(directionToCamera);
+
+    // Determine if we need to rotate clockwise or counterclockwise
+    const crossResult = new THREE.Vector3().crossVectors(
+      crabForward,
+      directionToCamera
+    );
+    if (crossResult.y < 0) {
+      // This depends on your up direction, assuming Y-up here
+      rotationAngle *= -1;
+    }
+
+    this.crabBody.quaternion.setFromAxisAngle(
+      new THREE.Vector3(0, 1, 0),
+      rotationAngle
+    );
+
+    const direction = new CANNON.Vec3(
+      this.camera.position.x - this.crabBody.position.x,
+      0,
+      this.camera.position.z - this.crabBody.position.z
+    );
+
+    direction.normalize();
+    this.syncPositions(direction);
   };
 
   setPosition = (position) => {
@@ -313,7 +377,7 @@ export const Crab = class {
     // }
     if (this.crabObject) {
       this.crabWalk(delta);
-      this.crabMixer.update(delta);
+      this.crabBody.crabMixer.update(delta);
     }
   };
 
@@ -341,9 +405,9 @@ export const Crab = class {
       this.crabBody = null;
     }
 
-    if (this.crabMixer) {
-      this.crabMixer.stopAllAction();
-      this.crabMixer = null;
+    if (this.crabBody.crabMixer) {
+      this.crabBody.crabMixer.stopAllAction();
+      this.crabBody.crabMixer = null;
     }
   };
 };

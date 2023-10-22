@@ -2,6 +2,16 @@ import * as THREE from "three";
 
 import { Paradise } from "./paradise.js";
 
+const paradise = new Paradise();
+
+const animate = () => {
+  requestAnimationFrame(animate);
+  if (paradise.bgLoaded) {
+    paradise.render();
+    paradise.animate(paradise.clock.getDelta());
+  }
+};
+
 var isAnimating = false;
 THREE.DefaultLoadingManager.onLoad = () => {
   if (document.getElementById("loading")) {
@@ -38,15 +48,3 @@ toggleTab.addEventListener("click", function () {
   }
   terminalVisible = !terminalVisible;
 });
-
-const paradise = new Paradise();
-
-const animate = () => {
-  requestAnimationFrame(animate);
-  render();
-  paradise.animate(paradise.clock.getDelta());
-};
-
-const render = () => {
-  paradise.render();
-};

@@ -3,7 +3,7 @@ import * as CANNON from "cannon";
 
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { Water } from "three/addons/objects/Water.js";
-import { Sky } from "three/addons/objects/Sky.js";
+import { RGBELoader } from "three/addons/loaders/RGBELoader";
 
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { Crab } from "./crab.js";
@@ -22,14 +22,11 @@ const isMobileDevice = () => {
 
 export const Paradise = class {
   constructor() {
+    this.bgLoaded = false;
     this.clock = new THREE.Clock();
     this.animationsMap = new Map();
     this.crabs = [];
     this.container = document.getElementById("container");
-    this.lastCrabSpawn = performance.now();
-    this.crabSpawnInterval = 1000;
-    this.clonedCrab = null;
-    this.currentImage = 0;
 
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -62,7 +59,6 @@ export const Paradise = class {
     );
     this.camera.position.set(0, 4, 40);
 
-    this.sun = new THREE.Vector3();
     const waterGeometry = new THREE.PlaneGeometry(10000, 10000);
     this.water = new Water(waterGeometry, {
       textureWidth: 512,
@@ -80,16 +76,6 @@ export const Paradise = class {
     this.water.rotation.x = -Math.PI / 2;
     this.scene.add(this.water);
 
-    this.sky = new Sky();
-    this.sky.scale.setScalar(10000);
-    this.scene.add(this.sky);
-
-    const skyUniforms = this.sky.material.uniforms;
-    skyUniforms["turbidity"].value = 10;
-    skyUniforms["rayleigh"].value = 2;
-    skyUniforms["mieCoefficient"].value = 0.005;
-    skyUniforms["mieDirectionalG"].value = 0.8;
-
     this.gltfLoader = new GLTFLoader();
     var islandX = 0,
       islandY = 0,
@@ -101,8 +87,23 @@ export const Paradise = class {
       this.leaves = gltf.scene.getObjectByName("Armature");
       this.leaves.position.set(islandX, islandY + 8, islandZ);
       this.scene.add(this.leaves);
+      this.leavesMixer = new THREE.AnimationMixer(this.leaves);
+      gltf.animations.forEach((a) => {
+        this.animationsMap.set(a.name, this.leavesMixer.clipAction(a));
+      });
+      this.animationsMap.get("ArmatureAction.002").fadeIn(1).play();
       this.tree = gltf.scene.getObjectByName("tree");
       this.tree.position.set(islandX - 1, islandY + 4.4, islandZ);
+      const treeShape = new CANNON.Box(new CANNON.Vec3(1, 5, 1));
+      const slipperyMaterial = new CANNON.Material("slippery");
+      slipperyMaterial.friction = 0;
+      const treeBody = new CANNON.Body({
+        mass: 0,
+        material: slipperyMaterial,
+      });
+      treeBody.addShape(treeShape);
+      treeBody.position.copy(this.tree.position);
+      this.world.add(treeBody);
       this.scene.add(this.tree);
       this.island = gltf.scene.getObjectByName("island");
       this.island.position.set(islandX, islandY - 0.9, islandZ);
@@ -111,7 +112,18 @@ export const Paradise = class {
     });
 
     this.pmremGenerator = new THREE.PMREMGenerator(this.renderer);
-    let renderTarget;
+    this.pmremGenerator.compileEquirectangularShader();
+
+    new RGBELoader().load("assets/3d/puresky.hdr", (texture) => {
+      let envMap = this.pmremGenerator.fromEquirectangular(texture).texture;
+      console.log(envMap);
+      this.scene.background = envMap;
+      this.scene.environment = envMap;
+
+      texture.dispose();
+      this.pmremGenerator.dispose();
+      this.bgLoaded = true;
+    });
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.maxPolarAngle = Math.PI * 0.495;
@@ -119,19 +131,6 @@ export const Paradise = class {
     this.controls.minDistance = 5;
     this.controls.maxDistance = 200.0;
     this.controls.update();
-
-    this.sun.setFromSphericalCoords(1, Math.PI / 2, 0);
-
-    this.sky.material.uniforms["sunPosition"].value.copy(this.sun);
-    this.water.material.uniforms["sunDirection"].value
-      .copy(this.sun)
-      .normalize();
-
-    if (renderTarget !== undefined) renderTarget.dispose();
-
-    renderTarget = this.pmremGenerator.fromScene(this.sky);
-
-    this.scene.environment = renderTarget.texture;
 
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
@@ -271,6 +270,7 @@ export const Paradise = class {
               this.gltfLoader,
               this.scene,
               this.world,
+              this.camera,
               {
                 x: this.getRandomInt(-range, range),
                 y: 3,
@@ -408,31 +408,7 @@ export const Paradise = class {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   };
 
-  spawnCrab = (position) => {
-    if (this.crabs.length < 5) {
-      this.crabs.push(
-        new Crab(
-          this.gltfLoader,
-          this.scene,
-          this.world,
-          position,
-          "hi my name is david it is so very nice to be online, right?"
-        )
-      );
-      console.log("new crab. crab count: ", this.crabs.length);
-    }
-  };
-
   updateCrabs = (delta) => {
-    if (performance.now() - this.lastCrabSpawn > this.crabSpawnInterval) {
-      let range = 15;
-      // this.spawnCrab({x: this.getRandomInt(-range,range), y: 3, z: this.getRandomInt(-range,range)});
-      this.lastCrabSpawn = performance.now();
-    }
-
-    // if (this.clonedCrab && this.clonedCrab.crabObject) {
-    //   this.clonedCrab.crabObject.position.set(this.camera.position.x,  this.camera.position.y - 2,  this.camera.position.z - 5);
-    // }
     if (this.crabs.length > 0) {
       this.crabs.forEach((crab) => {
         crab.updateCrab(delta);
@@ -442,6 +418,7 @@ export const Paradise = class {
 
   animate = (delta) => {
     this.world.step(delta);
+    this.leavesMixer.update(delta);
     this.updateCrabs(delta);
   };
 
