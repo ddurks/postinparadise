@@ -19,11 +19,19 @@
         class="post-input"
         placeholder="Post something 👀..."
       />
-      <div class="color-selector">
-        <span class="color-display"></span>
-        <select id="colorDropdown"></select>
+      <div id="postSomethingContainer">
+        <div id="colorContainer">
+          <div class="color-selector">
+            <div id="colorDisplay" class="color-display">
+              <img id="colorImg">
+            </div>
+            <select id="colorDropdown"></select>
+          </div>
+        </div>
+        <div id="publishContainer">
+          <button id="publishBtn" class="publish-btn">publish 🌴</button>
+        </div>
       </div>
-      <button id="publishBtn" class="publish-btn">publish 🌴</button>
     </div>
     <div id="crabListOverlay">
       <div id="leftArrow" class="arrow">⬅️</div>

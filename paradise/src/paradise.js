@@ -155,8 +155,8 @@ export const Paradise = class {
       map: this.frameTextures[0],
       transparent: true,
     });
-    this.gifSprite = new THREE.Sprite(this.spriteMaterial);
-    this.scene.add(this.gifSprite);
+    this.markerGif = new THREE.Sprite(this.spriteMaterial);
+    this.scene.add(this.markerGif);
 
     window.addEventListener("resize", this.onWindowResize);
     window.addEventListener("click", this.onMouseClick, false);
@@ -251,6 +251,7 @@ export const Paradise = class {
           ClientService.getPostsById(this.userId)
             .then((data) => {
               this.currentPost = data;
+              this.updateHud();
             })
             .catch((error) => console.log("Error getting post"));
         }
@@ -258,6 +259,38 @@ export const Paradise = class {
       .catch((error) => {
         console.log("Error getting userid: ", error);
       });
+  };
+
+  updateHud = () => {
+    const dropdown = document.getElementById("colorDropdown");
+    const colorDisplay = document.querySelector(".color-display");
+    const colorImg = document.getElementById("colorImg");
+    if (this.currentPost.color) {
+      dropdown.value = "#" + this.currentPost.color;
+    } else {
+      dropdown.value = colors[Math.floor(Math.random() * colors.length)].value;
+    }
+    switch (dropdown.value.replace("#", "")) {
+      case "ff9e00":
+        colorImg.src = orangeCrab;
+        break;
+      case "1da4ff":
+        colorImg.src = blueCrab;
+        break;
+      case "ff69b4":
+        colorImg.src = pinkCrab;
+        break;
+      case "36d241":
+        colorImg.src = greenCrab;
+        break;
+      case "fffb01":
+        colorImg.src = yellowCrab;
+        break;
+    }
+
+    // Initial color display
+    colorDisplay.style.backgroundColor = dropdown.value;
+    document.documentElement.style.setProperty("--crab-color", dropdown.value);
   };
 
   getRandomColor = () => {
@@ -426,18 +459,20 @@ export const Paradise = class {
   };
 
   updateGif = (crab) => {
-    this.gifSprite.position.set(
-      crab.crabBody.position.x,
-      crab.crabBody.position.y + 3,
-      crab.crabBody.position.z
-    );
-    const now = Date.now();
-    if (now - this.lastFrameChangeTime > this.frameDuration) {
-      this.lastFrameChangeTime = now;
+    if (crab.crabObject) {
+      this.markerGif.position.set(
+        crab.crabBody.position.x,
+        crab.crabBody.position.y + 3 * crab.crabObject.scale.y,
+        crab.crabBody.position.z
+      );
+      const now = Date.now();
+      if (now - this.lastFrameChangeTime > this.frameDuration) {
+        this.lastFrameChangeTime = now;
 
-      this.currentFrame = (this.currentFrame + 1) % this.frameTextures.length;
-      this.spriteMaterial.map = this.frameTextures[this.currentFrame];
-      this.spriteMaterial.needsUpdate = true;
+        this.currentFrame = (this.currentFrame + 1) % this.frameTextures.length;
+        this.spriteMaterial.map = this.frameTextures[this.currentFrame];
+        this.spriteMaterial.needsUpdate = true;
+      }
     }
   };
 
