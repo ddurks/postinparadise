@@ -15,6 +15,7 @@ import greenCrab from "../assets/textures/crabs/36d241.png";
 import orangeCrab from "../assets/textures/crabs/ff9e00.png";
 import pinkCrab from "../assets/textures/crabs/ff69b4.png";
 import yellowCrab from "../assets/textures/crabs/fffb01.png";
+import hdriSky from "../assets/3d/puresky.hdr";
 
 const isMobileDevice = () => {
   return window.innerWidth <= 768; // You can adjust the width threshold as needed
@@ -114,9 +115,8 @@ export const Paradise = class {
     this.pmremGenerator = new THREE.PMREMGenerator(this.renderer);
     this.pmremGenerator.compileEquirectangularShader();
 
-    new RGBELoader().load("assets/3d/puresky.hdr", (texture) => {
+    new RGBELoader().load(hdriSky, (texture) => {
       let envMap = this.pmremGenerator.fromEquirectangular(texture).texture;
-      console.log(envMap);
       this.scene.background = envMap;
       this.scene.environment = envMap;
 
@@ -163,24 +163,26 @@ export const Paradise = class {
   }
 
   publishPost = () => {
-    const postContent = document.getElementById("postInput").value;
+    const newPost = {
+      content: document.getElementById("postInput").value,
+      color: document.getElementById("colorDropdown").value,
+    };
     if (this.currentPost) {
       if (
         window.confirm(
           `This will overwrite your current post: \n"${this.currentPost.content}"\nand reset your likes (${this.currentPost.likes_count}) to 0. \n\nProceed?`
         )
       ) {
-        this.createPost(postContent);
+        this.createPost(newPost);
       }
     } else {
-      this.createPost(postContent);
+      this.createPost(newPost);
     }
   };
 
   crabListSelect = (event) => {
     event.stopPropagation();
 
-    console.log(this.crabs.length, this.crabList.children.length);
     this.crabs.forEach((crab, index) => {
       crab.setSelected(false);
       if (this.crabList.children[index]) {
@@ -207,10 +209,10 @@ export const Paradise = class {
     this.crabList.scrollLeft += this.scrollAmount;
   };
 
-  createPost = (postContent) => {
-    ClientService.addPost(postContent)
+  createPost = (newPost) => {
+    ClientService.addPost(newPost)
       .then((postId) => {
-        console.log("Post added with ID: ", postId, "Content: ", postContent);
+        console.log("Post added with ID: ", postId, "Post: ", newPost);
         location.reload();
       })
       .catch((error) => {
@@ -223,7 +225,6 @@ export const Paradise = class {
       .then((data) => {
         if (data.user) {
           this.userId = data.user[0].id;
-          console.log(this.userId);
           ClientService.getPostsById(this.userId)
             .then((data) => {
               this.currentPost = data;
@@ -239,21 +240,6 @@ export const Paradise = class {
   getRandomColor = () => {
     let color = 0xff9e00;
     switch (this.getRandomInt(0, 5)) {
-      case 0:
-        color = 0xff9e00;
-        break;
-      case 1:
-        color = 0x1da4ff;
-        break;
-      case 2:
-        color = 0xff69b4;
-        break;
-      case 3:
-        color = 0x36d241;
-        break;
-      case 4:
-        color = 0xfffb01;
-        break;
     }
     return color;
   };
@@ -262,7 +248,6 @@ export const Paradise = class {
     ClientService.getPosts()
       .then((postsData) => {
         postsData.posts.forEach((post, index) => {
-          let color = this.getRandomColor();
           let range = 15;
           let scaleIncrease = post.likes_count * 0.1;
           this.crabs.push(
@@ -278,7 +263,7 @@ export const Paradise = class {
               },
               post.content,
               index,
-              color,
+              post.color,
               1 + scaleIncrease
             )
           );
@@ -286,7 +271,7 @@ export const Paradise = class {
           imgDiv.className = "imageWrapper";
           imgDiv.style.width = isMobileDevice() ? "85%" : "30%";
           let img = document.createElement("img");
-          switch (color.toString(16)) {
+          switch (post.color) {
             case "ff9e00":
               img.src = orangeCrab;
               break;
@@ -310,15 +295,12 @@ export const Paradise = class {
           text.className = "responsiveText";
           imgDiv.append(text);
           let likesCount = document.createElement("div");
-          console.log(post);
           likesCount.textContent = "💚" + post.likes_count;
           likesCount.className = "likesCount";
           imgDiv.append(likesCount);
           likesCount.onclick = () => {
-            console.log(post);
             ClientService.addLike(post.id)
               .then((data) => {
-                console.log(data);
                 let newPostLikes = post.likes_count + 1;
                 likesCount.textContent = "💚" + newPostLikes;
               })

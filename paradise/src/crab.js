@@ -101,7 +101,7 @@ export const Crab = class {
           child.postContent = text;
           child.index = index;
           if (child.material.name === "crabred") {
-            child.material.color.set(color);
+            child.material.color.set(parseInt(color, 16));
           }
         }
       });

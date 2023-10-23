@@ -1,7 +1,8 @@
 // vite.config.js
 export default {
-  assetsInclude: ["**/*.glb"],
+  assetsInclude: ["**/*.glb", "**/*.hdr"],
   build: {
-    outDir: "../paradiseengine/dist", // Specify your custom output directory name here
+    outDir: "../paradiseengine/dist",
+    assetsInlineLimit: 10000,
   },
 };

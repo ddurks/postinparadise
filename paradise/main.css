@@ -150,3 +150,14 @@ body {
     background-color: rgba(0, 255, 0, 0.5);  /* semi-transparent white */
     border-radius: 15px;  /* adjust as needed */
 }
+
+.color-selector {
+  margin-top: 10px;
+}
+
+.color-display {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle; /* or top */
+  display: inline-block;
+}

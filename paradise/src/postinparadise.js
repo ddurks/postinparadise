@@ -48,3 +48,29 @@ toggleTab.addEventListener("click", function () {
   }
   terminalVisible = !terminalVisible;
 });
+
+const colors = [
+  { name: "Orange", value: "#ff9e00" },
+  { name: "Blue", value: "#1da4ff" },
+  { name: "Pink", value: "#ff69b4" },
+  { name: "Green", value: "#36d241" },
+  { name: "Yellow", value: "#fffb01" },
+];
+
+const dropdown = document.getElementById("colorDropdown");
+const colorDisplay = document.querySelector(".color-display");
+
+colors.forEach((color) => {
+  const option = document.createElement("option");
+  option.value = color.value;
+  option.textContent = color.name;
+  dropdown.appendChild(option);
+});
+
+dropdown.addEventListener("change", function () {
+  document.body.style.backgroundColor = this.value;
+  colorDisplay.style.backgroundColor = this.value;
+});
+
+// Initial color display
+colorDisplay.style.backgroundColor = dropdown.value;

@@ -29,34 +29,16 @@ export const ClientService = {
     return await response.json();
   },
 
-  // Submit a new post
-  postPost: async (postContent) => {
+  // Attempt to create a new post
+  addPost: async (newPost) => {
     const response = await fetch(`${API_BASE_URL}/posts`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ content: postContent }),
-    });
-    if (!response.ok) {
-      throw new Error(`Failed with status: ${response.status}`);
-    }
-    return await response.json();
-  },
-
-  addPost: async (content) => {
-    // Send the POST request
-    const response = await fetch(`${API_BASE_URL}/posts`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        content: content,
-      }),
+      body: JSON.stringify(newPost),
     });
 
-    // Check if the request was successful
     if (!response.ok) {
       throw new Error(await response.text()); // This will throw an error with the server's response text (e.g., 'User already has a post.').
     }
