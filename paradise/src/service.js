@@ -21,7 +21,6 @@ export const ClientService = {
 
   // Fetch a post by userId
   getPostsById: async (userId) => {
-    console.log(userId);
     const response = await fetch(`${API_BASE_URL}/posts/${userId}`);
     if (!response.ok) {
       throw new Error(`Failed with status: ${response.status}`);

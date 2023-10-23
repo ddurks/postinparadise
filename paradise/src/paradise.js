@@ -165,7 +165,7 @@ export const Paradise = class {
   publishPost = () => {
     const newPost = {
       content: document.getElementById("postInput").value,
-      color: document.getElementById("colorDropdown").value,
+      color: document.getElementById("colorDropdown").value.replace("#", ""),
     };
     if (this.currentPost) {
       if (

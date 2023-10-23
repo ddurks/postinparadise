@@ -123,11 +123,9 @@ export const Crab = class {
       this.crabBody.elapsedStopTime = 0;
       this.crabBody.animationsMap = new Map();
       this.crabBody.crabMixer = new THREE.AnimationMixer(this.crabObject);
-      console.log(gltf.animations);
       gltf.animations.forEach((a) => {
         const action = this.crabBody.crabMixer.clipAction(a);
         if (a.name === "hug") {
-          console.log("hug");
           action.loop = THREE.LoopOnce;
           action.clampWhenFinished = true;
           this.crabBody.crabMixer.addEventListener("finished", (e) => {
