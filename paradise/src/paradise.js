@@ -16,6 +16,10 @@ import orangeCrab from "../assets/textures/crabs/ff9e00.png";
 import pinkCrab from "../assets/textures/crabs/ff69b4.png";
 import yellowCrab from "../assets/textures/crabs/fffb01.png";
 import hdriSky from "../assets/3d/puresky.hdr";
+import marker1 from "../assets/textures/playermarker1.png";
+import marker2 from "../assets/textures/playermarker2.png";
+import marker3 from "../assets/textures/playermarker3.png";
+import marker4 from "../assets/textures/playermarker4.png";
 
 const isMobileDevice = () => {
   return window.innerWidth <= 768; // You can adjust the width threshold as needed
@@ -28,6 +32,11 @@ export const Paradise = class {
     this.animationsMap = new Map();
     this.crabs = [];
     this.container = document.getElementById("container");
+
+    this.currentFrame = 0;
+    this.frameRate = 4;
+    this.frameDuration = 1000 / this.frameRate;
+    this.lastFrameChangeTime = Date.now();
 
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -134,6 +143,20 @@ export const Paradise = class {
 
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
+
+    const textureLoader = new THREE.TextureLoader();
+    this.frameTextures = [
+      textureLoader.load(marker1),
+      textureLoader.load(marker2),
+      textureLoader.load(marker3),
+      textureLoader.load(marker4),
+    ];
+    this.spriteMaterial = new THREE.SpriteMaterial({
+      map: this.frameTextures[0],
+      transparent: true,
+    });
+    this.gifSprite = new THREE.Sprite(this.spriteMaterial);
+    this.scene.add(this.gifSprite);
 
     window.addEventListener("resize", this.onWindowResize);
     window.addEventListener("click", this.onMouseClick, false);
@@ -264,7 +287,8 @@ export const Paradise = class {
               post.content,
               index,
               post.color,
-              1 + scaleIncrease
+              1 + scaleIncrease,
+              post.user_id
             )
           );
           let imgDiv = document.createElement("div");
@@ -393,8 +417,27 @@ export const Paradise = class {
   updateCrabs = (delta) => {
     if (this.crabs.length > 0) {
       this.crabs.forEach((crab) => {
+        if (this.userId && crab.userId === this.userId) {
+          this.updateGif(crab);
+        }
         crab.updateCrab(delta);
       });
+    }
+  };
+
+  updateGif = (crab) => {
+    this.gifSprite.position.set(
+      crab.crabBody.position.x,
+      crab.crabBody.position.y + 3,
+      crab.crabBody.position.z
+    );
+    const now = Date.now();
+    if (now - this.lastFrameChangeTime > this.frameDuration) {
+      this.lastFrameChangeTime = now;
+
+      this.currentFrame = (this.currentFrame + 1) % this.frameTextures.length;
+      this.spriteMaterial.map = this.frameTextures[this.currentFrame];
+      this.spriteMaterial.needsUpdate = true;
     }
   };
 
