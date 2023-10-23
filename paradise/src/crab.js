@@ -162,7 +162,7 @@ export const Crab = class {
         const textArray = this.formatText(text);
         const position = new THREE.Vector3(
           this.crabObject.position.x,
-          this.crabObject.position.y + 0.8,
+          this.crabObject.position.y + 0.75,
           this.crabObject.position.z
         );
         this.multiLineText = new MultiLineText(
@@ -343,7 +343,7 @@ export const Crab = class {
     if (this.multiLineText) {
       this.multiLineText.mesh.position.set(
         this.crabBody.position.x + direction.x * 0.8 * this.crabObject.scale.x,
-        this.crabBody.position.y + 0.8 * this.crabObject.scale.y,
+        this.crabBody.position.y + 0.75 * this.crabObject.scale.y,
         this.crabBody.position.z + direction.z * 0.8 * this.crabObject.scale.z
       );
       this.multiLineText.mesh.rotation.copy(euler);
