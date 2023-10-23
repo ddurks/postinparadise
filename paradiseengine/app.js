@@ -35,18 +35,18 @@ app.post("/posts", async (req, res) => {
     await client.query("BEGIN");
 
     // Check if user already has a post
-    const userPost = await client.query(
-      "SELECT * FROM posts INNER JOIN users ON users.id = posts.user_id WHERE users.ip_address = $1",
+    const user = await client.query(
+      "SELECT * FROM users WHERE ip_address = $1",
       [ipAddress]
     );
 
-    if (userPost.rows.length > 0) {
+    if (user.rows.length > 0) {
       // User already has a post; update the content and clear the likes
-      const postId = userPost.rows[0].id;
+      const postId = user.rows[0].post_id;
 
       // Update the post content
       await client.query(
-        "UPDATE posts SET content = $1, likes_count = $2, color = $3 WHERE id = $4",
+        "UPDATE posts SET content = $1, likes_count = $2, color = $3, created_at = NOW() WHERE id = $4",
         [content, 0, color, postId]
       );
 
@@ -56,14 +56,31 @@ app.post("/posts", async (req, res) => {
       await client.query("COMMIT");
       res.json({ postId });
     } else {
-      // User doesn't have a post; create a new one
+      // Try to insert a new user
       const user = await client.query(
-        "INSERT INTO users (ip_address) VALUES ($1) RETURNING id",
+        "INSERT INTO users (ip_address) VALUES ($1) ON CONFLICT (ip_address) DO NOTHING RETURNING id",
         [ipAddress]
       );
+      
+      // If user was inserted, use the returned ID
+      let userId;
+      if (user.rows.length) {
+        userId = user.rows[0].id;
+      } else {
+        // If user already exists, fetch the existing user
+        const existingUser = await client.query(
+          "SELECT id FROM users WHERE ip_address = $1",
+          [ipAddress]
+        );
+        userId = existingUser.rows[0].id;
+      }
       const post = await client.query(
         "INSERT INTO posts (content, user_id, color) VALUES ($1, $2, $3) RETURNING id",
-        [content, user.rows[0].id, color]
+        [content, userId, color]
+      );
+      await client.query(
+        "UPDATE users SET post_id = $1 WHERE ip_address = $2",
+        [post.rows[0].id, ipAddress]
       );
 
       await client.query("COMMIT");
@@ -158,6 +175,23 @@ app.put("/posts/:id/like", async (req, res) => {
     client.release();
   }
 });
+
+deleteOldRows = async () => {
+  try {
+    const result = await pool.query(
+      "DELETE FROM posts WHERE created_at < NOW() - INTERVAL '24 hours'"
+    );
+    console.log(`${result.rowCount} rows deleted.`);
+  } catch (err) {
+    console.error("Error deleting rows:", err);
+  }
+};
+
+// Run the function immediately upon starting the script
+deleteOldRows();
+
+// Then run it every hour (3600000 milliseconds)
+setInterval(deleteOldRows, 3600000);
 
 const PORT = 3000;
 app.listen(PORT, () => {
