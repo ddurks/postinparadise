@@ -8,6 +8,17 @@ import pinkCrab from "../assets/textures/crabs/ff69b4.png";
 import yellowCrab from "../assets/textures/crabs/fffb01.png";
 
 const asciiArt = `
+                          _.--..--._ _
+                      .-' _/   _/\_   \_'-.
+                      |__ /   _/\__/\_   \__|
+                        |___/\_\__/  \___|
+                              \__/
+                              \__/
+                                \__/
+                                \__/
+                              ____\__/___
+                     _  . - '             ' -. _
+  ~~~~~~~  ~~~~~ ~~~~~  ~~~ ~~~~~~~ ~~~ ~~~~~~~  ~~~~~ ~~~~~  ~~~ ~~~
                  _     _                                   _ _          
                 | |   (_)                                 | (_)         
  _ __   ___  ___| |_   _ _ __    _ __   __ _ _ __ __ _  __| |_ ___  ___ 
@@ -17,7 +28,7 @@ const asciiArt = `
 | |                             | |                                     
 |_|                             |_|                                     
 `;
-console.log(asciiArt);
+console.log("%c" + asciiArt, "font-family: monospace");
 const paradise = new Paradise();
 
 const animate = () => {
@@ -55,6 +66,7 @@ const toggleTab = document.getElementById("toggleTab");
 let terminalVisible = false;
 
 toggleTab.addEventListener("click", function () {
+  document.getElementById("postInput").value = "";
   if (terminalVisible) {
     terminal.style.top = "-360px";
     document.getElementById("toggleTab").innerHTML = "⬇️ post in paradise ⬇️";

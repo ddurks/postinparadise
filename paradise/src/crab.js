@@ -71,15 +71,15 @@ export const Crab = class {
     index,
     color,
     scale = 1.0,
-    userId
+    you = false
   ) {
     this.walkTime = 0;
     this.walkPath = this.createWalkPath();
     this.scene = scene;
     this.world = world;
     this.camera = camera;
-    this.userId = userId;
     this.content = text;
+    this.you = you;
 
     this.boxShape = new CANNON.Box(new CANNON.Vec3(0.75, 0.75, 0.75));
     const slipperyMaterial = new CANNON.Material("slippery");

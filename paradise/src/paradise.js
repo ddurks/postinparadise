@@ -16,10 +16,22 @@ import orangeCrab from "../assets/textures/crabs/ff9e00.png";
 import pinkCrab from "../assets/textures/crabs/ff69b4.png";
 import yellowCrab from "../assets/textures/crabs/fffb01.png";
 import hdriSky from "../assets/3d/puresky.hdr";
-import marker1 from "../assets/textures/playermarker1.png";
-import marker2 from "../assets/textures/playermarker2.png";
-import marker3 from "../assets/textures/playermarker3.png";
-import marker4 from "../assets/textures/playermarker4.png";
+import marker1 from "../assets/textures/you1.png";
+import marker2 from "../assets/textures/you2.png";
+import marker3 from "../assets/textures/you3.png";
+import marker4 from "../assets/textures/you4.png";
+
+const Colors = {
+  ORANGE: "ff9e00",
+  BLUE: "1da4ff",
+  PINK: "ff69b4",
+  GREEN: "36d241",
+  YELLOW: "fffb01",
+};
+
+const colors = Object.values(Colors).map((color) => ({ value: `#${color}` }));
+
+const POST_LIMIT_ERROR = "Error: Only one post allowed each day.";
 
 const isMobileDevice = () => {
   return window.innerWidth <= 768; // You can adjust the width threshold as needed
@@ -58,7 +70,6 @@ export const Paradise = class {
     this.floorBody.position.set(0, 1.5, 0);
     this.world.addBody(this.floorBody);
     this.crabList = document.getElementById("crabList");
-    this.loadUserInfo();
     this.loadPosts();
 
     this.camera = new THREE.PerspectiveCamera(
@@ -156,6 +167,7 @@ export const Paradise = class {
       transparent: true,
     });
     this.markerGif = new THREE.Sprite(this.spriteMaterial);
+    this.markerGif.scale.set(2, 2, 2);
     this.scene.add(this.markerGif);
 
     window.addEventListener("resize", this.onWindowResize);
@@ -185,21 +197,15 @@ export const Paradise = class {
       .addEventListener("click", this.publishPost);
   }
 
-  publishPost = () => {
-    const newPost = {
-      content: document.getElementById("postInput").value,
-      color: document.getElementById("colorDropdown").value.replace("#", ""),
-    };
-    if (this.currentPost) {
-      if (
-        window.confirm(
-          `This will overwrite your current post: \n"${this.currentPost.content}"\nand reset your likes (${this.currentPost.likes_count}) to 0. \n\nProceed?`
-        )
-      ) {
-        this.createPost(newPost);
-      }
-    } else {
-      this.createPost(newPost);
+  publishPost = async () => {
+    let postInput = document.getElementById("postInput");
+    if (postInput.value != POST_LIMIT_ERROR) {
+      const newPost = {
+        content: postInput.value,
+        color: document.getElementById("colorDropdown").value.replace("#", ""),
+        updateType: "create",
+      };
+      await this.createPost(newPost);
     }
   };
 
@@ -232,58 +238,45 @@ export const Paradise = class {
     this.crabList.scrollLeft += this.scrollAmount;
   };
 
-  createPost = (newPost) => {
-    ClientService.addPost(newPost)
-      .then((postId) => {
-        console.log("Post added with ID: ", postId, "Post: ", newPost);
-        location.reload();
+  createPost = async (newPost) => {
+    let publishBtn = document.getElementById("publishBtn");
+    publishBtn.disabled = true;
+    publishBtn.innerHTML = "loading...";
+    await ClientService.addPost(newPost)
+      .then((resp) => {
+        console.log("Post added: ", resp, "Post: ", newPost);
+        if (resp) {
+          location.reload();
+        } else {
+          document.getElementById("postInput").value = POST_LIMIT_ERROR;
+        }
       })
       .catch((error) => {
         console.error("Error adding post:", error);
       });
-  };
-
-  loadUserInfo = () => {
-    ClientService.getUserId()
-      .then((data) => {
-        if (data.user) {
-          this.userId = data.user[0].id;
-          ClientService.getPostsById(this.userId)
-            .then((data) => {
-              this.currentPost = data;
-              this.updateHud();
-            })
-            .catch((error) => console.log("Error getting post"));
-        }
-      })
-      .catch((error) => {
-        console.log("Error getting userid: ", error);
-      });
+    publishBtn.innerHTML = "publish 🌴";
+    publishBtn.disabled = false;
   };
 
   updateHud = () => {
     const dropdown = document.getElementById("colorDropdown");
     const colorDisplay = document.querySelector(".color-display");
     const colorImg = document.getElementById("colorImg");
-    if (this.currentPost.color) {
-      dropdown.value = "#" + this.currentPost.color;
-    } else {
-      dropdown.value = colors[Math.floor(Math.random() * colors.length)].value;
-    }
+    dropdown.value = colors[Math.floor(Math.random() * colors.length)].value;
     switch (dropdown.value.replace("#", "")) {
-      case "ff9e00":
+      case Colors.ORANGE:
         colorImg.src = orangeCrab;
         break;
-      case "1da4ff":
+      case Colors.BLUE:
         colorImg.src = blueCrab;
         break;
-      case "ff69b4":
+      case Colors.PINK:
         colorImg.src = pinkCrab;
         break;
-      case "36d241":
+      case Colors.GREEN:
         colorImg.src = greenCrab;
         break;
-      case "fffb01":
+      case Colors.YELLOW:
         colorImg.src = yellowCrab;
         break;
     }
@@ -303,9 +296,9 @@ export const Paradise = class {
   loadPosts = () => {
     ClientService.getPosts()
       .then((postsData) => {
-        postsData.posts.forEach((post, index) => {
+        postsData.forEach((post, index) => {
           let range = 15;
-          let scaleIncrease = post.likes_count * 0.1;
+          let scaleIncrease = post.likes * 0.1;
           this.crabs.push(
             new Crab(
               this.gltfLoader,
@@ -321,7 +314,7 @@ export const Paradise = class {
               index,
               post.color,
               1 + scaleIncrease,
-              post.user_id
+              post.you
             )
           );
           let imgDiv = document.createElement("div");
@@ -329,19 +322,19 @@ export const Paradise = class {
           imgDiv.style.width = isMobileDevice() ? "85%" : "30%";
           let img = document.createElement("img");
           switch (post.color) {
-            case "ff9e00":
+            case Colors.ORANGE:
               img.src = orangeCrab;
               break;
-            case "1da4ff":
+            case Colors.BLUE:
               img.src = blueCrab;
               break;
-            case "ff69b4":
+            case Colors.PINK:
               img.src = pinkCrab;
               break;
-            case "36d241":
+            case Colors.GREEN:
               img.src = greenCrab;
               break;
-            case "fffb01":
+            case Colors.YELLOW:
               img.src = yellowCrab;
               break;
           }
@@ -352,17 +345,19 @@ export const Paradise = class {
           text.className = "responsiveText";
           imgDiv.append(text);
           let likesCount = document.createElement("div");
-          likesCount.textContent = "💚" + post.likes_count;
+          likesCount.textContent = "💚" + post.likes;
           likesCount.className = "likesCount";
           imgDiv.append(likesCount);
           likesCount.onclick = () => {
-            ClientService.addLike(post.id)
-              .then((data) => {
-                let newPostLikes = post.likes_count + 1;
-                likesCount.textContent = "💚" + newPostLikes;
+            ClientService.addLike(post.postId)
+              .then((result) => {
+                if (result) {
+                  let newPostLikes = post.likes + 1;
+                  likesCount.textContent = "💚" + newPostLikes;
+                }
               })
               .catch((error) => {
-                console.log(error);
+                console.log("Error adding like: ", error);
               });
           };
           this.crabList.appendChild(imgDiv);
@@ -450,7 +445,7 @@ export const Paradise = class {
   updateCrabs = (delta) => {
     if (this.crabs.length > 0) {
       this.crabs.forEach((crab) => {
-        if (this.userId && crab.userId === this.userId) {
+        if (crab.you) {
           this.updateGif(crab);
         }
         crab.updateCrab(delta);
