@@ -28,10 +28,8 @@ export const ClientService = {
       throw new Error(await response.text()); // This will throw an error with the server's response text (e.g., 'User already has a post.').
     }
 
-    console.log("response: ", JSON.stringify(response));
     const result = await response.json();
-    console.log("result: ", JSON.stringify(result));
-    return result.postId; // Return the new post's ID
+    return result;
   },
 
   // Add a like to a specific post

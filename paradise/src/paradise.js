@@ -241,12 +241,14 @@ export const Paradise = class {
   createPost = async (newPost) => {
     let publishBtn = document.getElementById("publishBtn");
     publishBtn.disabled = true;
-    publishBtn.innerHTML = "loading...";
+    publishBtn.innerHTML = "posting...";
     await ClientService.addPost(newPost)
       .then((resp) => {
-        console.log("Post added: ", resp, "Post: ", newPost);
+        console.log("Posted to Paradise: ", resp);
         if (resp) {
-          location.reload();
+          if (resp.tweetUrl) {
+            window.location.href = resp.tweetUrl;
+          }
         } else {
           document.getElementById("postInput").value = POST_LIMIT_ERROR;
         }
@@ -258,35 +260,62 @@ export const Paradise = class {
     publishBtn.disabled = false;
   };
 
+  getCookie = (name) => {
+    let cookieArr = document.cookie.split(";");
+
+    for (let i = 0; i < cookieArr.length; i++) {
+      let cookiePair = cookieArr[i].split("=");
+
+      if (name == cookiePair[0].trim()) {
+        return decodeURIComponent(cookiePair[1]);
+      }
+    }
+
+    return null;
+  };
+
   updateHud = () => {
     const dropdown = document.getElementById("colorDropdown");
     const colorDisplay = document.querySelector(".color-display");
     const colorImg = document.getElementById("colorImg");
-    dropdown.value = colors[Math.floor(Math.random() * colors.length)].value;
-    switch (dropdown.value.replace("#", "")) {
+    const faqImg = document.getElementById("faqImg");
+    const cookieColor = this.getCookie("crabColor");
+    var hudColor;
+    if (cookieColor) {
+      hudColor = cookieColor;
+    } else {
+      hudColor = colors[Math.floor(Math.random() * colors.length)].value;
+    }
+    dropdown.value = hudColor;
+    switch (hudColor.replace("#", "")) {
       case Colors.ORANGE:
         colorImg.src = orangeCrab;
+        faqImg.src = orangeCrab;
         break;
       case Colors.BLUE:
         colorImg.src = blueCrab;
+        faqImg.src = blueCrab;
         break;
       case Colors.PINK:
         colorImg.src = pinkCrab;
+        faqImg.src = pinkCrab;
         break;
       case Colors.GREEN:
         colorImg.src = greenCrab;
+        faqImg.src = greenCrab;
         break;
       case Colors.YELLOW:
         colorImg.src = yellowCrab;
+        faqImg.src = yellowCrab;
         break;
     }
 
     // Initial color display
-    colorDisplay.style.backgroundColor = dropdown.value;
-    document.documentElement.style.setProperty("--crab-color", dropdown.value);
+    colorDisplay.style.backgroundColor = hudColor;
+    document.documentElement.style.setProperty("--crab-color", hudColor);
   };
 
-  getRandomColor = () => {
+  gethudColor = () => {
     let color = 0xff9e00;
     switch (this.getRandomInt(0, 5)) {
     }
@@ -357,14 +386,14 @@ export const Paradise = class {
                 }
               })
               .catch((error) => {
-                console.log("Error adding like: ", error);
+                console.error("Error adding like: ", error);
               });
           };
           this.crabList.appendChild(imgDiv);
         });
       })
       .catch((error) => {
-        console.error("Error adding post:", error);
+        console.error("Error loading posts: ", error);
       });
   };
 

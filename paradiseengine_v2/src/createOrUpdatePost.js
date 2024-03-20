@@ -1,5 +1,6 @@
 const AWS = require("aws-sdk");
 const { v4: uuidv4 } = require("uuid");
+const { TwitterApi } = require("twitter-api-v2");
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 const tableName = "postinparadise";
 const POST_TIMEOUT = 24 * 60 * 60 * 1000;
@@ -93,36 +94,41 @@ const createOrUpdatePost = async (requestBody, sourceIp) => {
       };
 
       await dynamoDb.put(putParams).promise();
-      // try {
-      //   // Retrieve Twitter credentials from AWS Secrets Manager
-      //   const credentials = await getTwitterCredentials();
-      //   console.log("credentials: ", credentials);
+      var tweetUrl = "";
+      try {
+        // Retrieve Twitter credentials from AWS Secrets Manager
+        const credentials = await getTwitterCredentials();
 
-      //   const twitterClient = new TwitterApi({
-      //     appKey: credentials.apiKey,
-      //     appSecret: credentials.apiKeySecret,
-      //     accessToken: credentials.accessToken,
-      //     accessSecret: credentials.accessTokenSecret,
-      //   });
+        const twitterClient = new TwitterApi({
+          appKey: credentials.appKey,
+          appSecret: credentials.appSecret,
+          accessToken: credentials.accessToken,
+          accessSecret: credentials.accessSecret,
+        });
 
-      //   // Post a tweet
-      //   const result = await twitterClient.v2.tweet(content);
-      //   console.log("Tweet posted:", result);
-      // } catch (err) {
-      //   return {
-      //     statusCode: 500,
-      //     body: JSON.stringify({
-      //       message:
-      //         "Post Created, Error tweeting post: " + JSON.stringify(err),
-      //     }),
-      //   };
-      // }
+        const result = await twitterClient.v2.tweet(
+          content + "\n\n🌴 https://postinparadise.com"
+        );
+        console.log("Tweet posted:", JSON.stringify(result));
+        tweetUrl = `https://twitter.com/postinparadise/status/${result.data.id}`;
+        console.log("Tweet URL:", tweetUrl);
+      } catch (err) {
+        console.log("Tweet Error:", JSON.stringify(err));
+        return {
+          statusCode: 500,
+          body: JSON.stringify({
+            message:
+              "Post created, Error while tweeting it: " + JSON.stringify(err),
+          }),
+        };
+      }
 
       return {
         statusCode: 200,
         body: JSON.stringify({
-          message: "Post created successfully.",
+          message: "Successfully posted & tweeted 🏝",
           postId: putParams.Item.postId,
+          tweetUrl: tweetUrl,
         }),
       };
     } catch (err) {
@@ -159,7 +165,7 @@ const createOrUpdatePost = async (requestBody, sourceIp) => {
       if (updatedLikesCount > currentLikesCount) {
         return {
           statusCode: 200,
-          body: JSON.stringify({ message: "Post Liked." }),
+          body: JSON.stringify({ message: "Post Liked 🏝" }),
         };
       } else {
         return {

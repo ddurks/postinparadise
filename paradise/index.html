@@ -11,8 +11,38 @@
     <link rel="icon" href="/favicon.ico" />
   </head>
   <body>
+    <script type="module" src="./src/postinparadise.js"></script>
     <img id="loading" src="assets/textures/loading.gif" />
+    <div id="faqContainer">
+      ?
+      <img id="faqImg">
+    </div>
+    <div id="splashScreen" class="splash-screen">
+      <div class="close-btn">❌</div>
+      <div class="content">
+          <h2>🌴</h2>
+          <h2>welcome to <a href="https://twitter.com/postinparadise">paradise</a></h2>
+          <div>🌊🌊🌊</div>
+          <br>
+          <div>click ⬇️ post in paradise ⬇️ at the top of the screen to draft a post<div id="postLimitWarning">⚠️ only one post per day (by IP address) use it wisely ⚠️</div>
+          </div>
+          <br>
+          <div>then click publish 🦀 to spawn a crab on paradise island 🏝 and post your thoughts to <a href="https://twitter.com/postinparadise">twitter.com/postinparadise</a> 🐦</div>
+          <br>
+          <div>click on the crabs to view details</div>
+          <br>
+          <div>click the like 💚 beside a crab to like a post.</div>
+          <div id="postLimitWarning">⚠️ each IP can only like each post once ⚠️</div>
+          <br>
+          <div> crabs will gain size and power 😤 with each like 💚</div>
+          <br>
+          <div>created by <a href="https://twitter.com/drawvid">@drawvid</a></div>
+          <br>
+          <div>🦀</div>
+      </div>
+    </div>
     <div id="terminal" class="terminal">
+      <div id="postLimitWarning">⚠️ only one post per day, use it wisely</div>
       <input
         type="text"
         id="postInput"
@@ -29,7 +59,7 @@
           </div>
         </div>
         <div id="publishContainer">
-          <button id="publishBtn" class="publish-btn">publish 🌴</button>
+          <button id="publishBtn" class="publish-btn">publish 🦀</button>
         </div>
       </div>
     </div>
@@ -40,6 +70,5 @@
     </div>
     <div id="toggleTab" class="toggle-tab">⬇️ post in paradise ⬇️</div>
     <div id="container"></div>
-    <script type="module" src="./src/postinparadise.js"></script>
   </body>
 </html>

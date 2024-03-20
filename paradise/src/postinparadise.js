@@ -30,6 +30,7 @@ const asciiArt = `
 `;
 console.log("%c" + asciiArt, "font-family: monospace");
 const paradise = new Paradise();
+paradise.updateHud();
 
 const animate = () => {
   requestAnimationFrame(animate);
@@ -74,7 +75,6 @@ toggleTab.addEventListener("click", function () {
     terminal.style.top = "50px";
     document.getElementById("toggleTab").innerHTML = "⬆️ close ⬆️";
   }
-  paradise.updateHud();
   terminalVisible = !terminalVisible;
 });
 
@@ -89,6 +89,7 @@ const colors = [
 const dropdown = document.getElementById("colorDropdown");
 const colorDisplay = document.querySelector(".color-display");
 const colorImg = document.getElementById("colorImg");
+const faqImg = document.getElementById("faqImg");
 
 colors.forEach((color) => {
   const option = document.createElement("option");
@@ -103,23 +104,50 @@ dropdown.addEventListener("change", (event) => {
   switch (event.target.value.replace("#", "")) {
     case "ff9e00":
       colorImg.src = orangeCrab;
+      faqImg.src = orangeCrab;
       break;
     case "1da4ff":
       colorImg.src = blueCrab;
+      faqImg.src = blueCrab;
       break;
     case "ff69b4":
       colorImg.src = pinkCrab;
+      faqImg.src = pinkCrab;
       break;
     case "36d241":
       colorImg.src = greenCrab;
+      faqImg.src = greenCrab;
       break;
     case "fffb01":
       colorImg.src = yellowCrab;
+      faqImg.src = yellowCrab;
       break;
   }
+  setCookie("crabColor", event.target.value, 365);
 
   document.documentElement.style.setProperty(
     "--crab-color",
     event.target.value
   );
 });
+
+document.getElementById("splashScreen").onclick = () => {
+  document.getElementById("splashScreen").style.display = "none";
+};
+
+document.getElementById("faqContainer").onclick = () => {
+  if (document.getElementById("splashScreen").style.display === "flex") {
+    document.getElementById("splashScreen").style.display = "none";
+  } else {
+    document.getElementById("splashScreen").style.display = "flex";
+  }
+};
+
+const setCookie = (name, value, daysToLive) => {
+  let cookie = name + "=" + encodeURIComponent(value);
+  if (typeof daysToLive === "number") {
+    cookie += "; max-age=" + daysToLive * 24 * 60 * 60;
+
+    document.cookie = cookie;
+  }
+};
