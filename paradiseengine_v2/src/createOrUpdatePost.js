@@ -107,7 +107,7 @@ const createOrUpdatePost = async (requestBody, sourceIp) => {
         });
 
         const result = await twitterClient.v2.tweet(
-          content + "\n\n🌴 https://postinparadise.com"
+          content + "\n\n🌴 https://drawvid.com/code/postinparadise"
         );
         console.log("Tweet posted:", JSON.stringify(result));
         tweetUrl = `https://twitter.com/postinparadise/status/${result.data.id}`;
