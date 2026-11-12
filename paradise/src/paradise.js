@@ -31,8 +31,6 @@ const Colors = {
 
 const colors = Object.values(Colors).map((color) => ({ value: `#${color}` }));
 
-const POST_LIMIT_ERROR = "Error: Only one post allowed each day.";
-
 const isMobileDevice = () => {
   return window.innerWidth <= 768; // You can adjust the width threshold as needed
 };
@@ -199,14 +197,15 @@ export const Paradise = class {
 
   publishPost = async () => {
     let postInput = document.getElementById("postInput");
-    if (postInput.value != POST_LIMIT_ERROR) {
-      const newPost = {
-        content: postInput.value,
-        color: document.getElementById("colorDropdown").value.replace("#", ""),
-        updateType: "create",
-      };
-      await this.createPost(newPost);
+    const content = postInput.value.trim();
+    if (!content) {
+      return;
     }
+    const newPost = {
+      content: content,
+      color: document.getElementById("colorDropdown").value.replace("#", ""),
+    };
+    await this.createPost(newPost);
   };
 
   crabListSelect = (event) => {
@@ -241,22 +240,15 @@ export const Paradise = class {
   createPost = async (newPost) => {
     let publishBtn = document.getElementById("publishBtn");
     publishBtn.disabled = true;
-    publishBtn.innerHTML = "posting...";
     await ClientService.addPost(newPost)
-      .then((resp) => {
-        console.log("Posted to Paradise: ", resp);
-        if (resp) {
-          if (resp.tweetUrl) {
-            window.location.href = resp.tweetUrl;
-          }
-        } else {
-          document.getElementById("postInput").value = POST_LIMIT_ERROR;
-        }
+      .then((post) => {
+        this.crabs.forEach((crab) => (crab.you = false));
+        this.addPostToIsland(post, this.crabs.length);
+        document.getElementById("postInput").value = "";
       })
       .catch((error) => {
         console.error("Error adding post:", error);
       });
-    publishBtn.innerHTML = "publish 🌴";
     publishBtn.disabled = false;
   };
 
@@ -325,76 +317,79 @@ export const Paradise = class {
   loadPosts = () => {
     ClientService.getPosts()
       .then((postsData) => {
-        postsData.forEach((post, index) => {
-          let range = 15;
-          let scaleIncrease = post.likes * 0.1;
-          this.crabs.push(
-            new Crab(
-              this.gltfLoader,
-              this.scene,
-              this.world,
-              this.camera,
-              {
-                x: this.getRandomInt(-range, range),
-                y: 3,
-                z: this.getRandomInt(-range, range),
-              },
-              post.content,
-              index,
-              post.color,
-              1 + scaleIncrease,
-              post.you
-            )
-          );
-          let imgDiv = document.createElement("div");
-          imgDiv.className = "imageWrapper";
-          imgDiv.style.width = isMobileDevice() ? "85%" : "30%";
-          let img = document.createElement("img");
-          switch (post.color) {
-            case Colors.ORANGE:
-              img.src = orangeCrab;
-              break;
-            case Colors.BLUE:
-              img.src = blueCrab;
-              break;
-            case Colors.PINK:
-              img.src = pinkCrab;
-              break;
-            case Colors.GREEN:
-              img.src = greenCrab;
-              break;
-            case Colors.YELLOW:
-              img.src = yellowCrab;
-              break;
-          }
-          img.className = "responsiveImage";
-          imgDiv.append(img);
-          let text = document.createElement("div");
-          text.textContent = post.content;
-          text.className = "responsiveText";
-          imgDiv.append(text);
-          let likesCount = document.createElement("div");
-          likesCount.textContent = "💚" + post.likes;
-          likesCount.className = "likesCount";
-          imgDiv.append(likesCount);
-          likesCount.onclick = () => {
-            ClientService.addLike(post.postId)
-              .then((result) => {
-                if (result) {
-                  let newPostLikes = post.likes + 1;
-                  likesCount.textContent = "💚" + newPostLikes;
-                }
-              })
-              .catch((error) => {
-                console.error("Error adding like: ", error);
-              });
-          };
-          this.crabList.appendChild(imgDiv);
-        });
+        postsData.forEach((post, index) => this.addPostToIsland(post, index));
       })
       .catch((error) => {
         console.error("Error loading posts: ", error);
       });
+  };
+
+  addPostToIsland = (post, index) => {
+    let range = 15;
+    let scaleIncrease = post.likes * 0.1;
+    const crab = new Crab(
+      this.gltfLoader,
+      this.scene,
+      this.world,
+      this.camera,
+      {
+        x: this.getRandomInt(-range, range),
+        y: 3,
+        z: this.getRandomInt(-range, range),
+      },
+      post.content,
+      index,
+      post.color,
+      1 + scaleIncrease,
+      post.you
+    );
+    this.crabs.push(crab);
+    let imgDiv = document.createElement("div");
+    imgDiv.className = "imageWrapper";
+    imgDiv.style.width = isMobileDevice() ? "85%" : "30%";
+    let img = document.createElement("img");
+    switch (post.color) {
+      case Colors.ORANGE:
+        img.src = orangeCrab;
+        break;
+      case Colors.BLUE:
+        img.src = blueCrab;
+        break;
+      case Colors.PINK:
+        img.src = pinkCrab;
+        break;
+      case Colors.GREEN:
+        img.src = greenCrab;
+        break;
+      case Colors.YELLOW:
+        img.src = yellowCrab;
+        break;
+    }
+    img.className = "responsiveImage";
+    imgDiv.append(img);
+    let text = document.createElement("div");
+    text.textContent = post.content;
+    text.className = "responsiveText";
+    imgDiv.append(text);
+    let likesCount = document.createElement("div");
+    likesCount.textContent = "💚" + post.likes;
+    likesCount.className = "likesCount";
+    imgDiv.append(likesCount);
+    likesCount.onclick = () => {
+      ClientService.addLike(post.postId)
+        .then((result) => {
+          if (result) {
+            likesCount.textContent = "💚" + result.likes;
+            if (crab.crabObject && crab.multiLineText) {
+              crab.scaleCrab(0.1);
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("Error adding like: ", error);
+        });
+    };
+    this.crabList.appendChild(imgDiv);
   };
 
   showOverlay = (visible) => {
@@ -472,6 +467,7 @@ export const Paradise = class {
   };
 
   updateCrabs = (delta) => {
+    this.markerGif.visible = this.crabs.some((crab) => crab.you);
     if (this.crabs.length > 0) {
       this.crabs.forEach((crab) => {
         if (crab.you) {

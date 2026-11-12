@@ -1,52 +1,62 @@
-const API_BASE_URL =
-  "https://tvlz7xvap7.execute-api.us-east-2.amazonaws.com/paradise"; // Adjust to your server's URL
+// Posts live only in this browser's localStorage now that the backend is gone.
+const STORAGE_KEY = "paradisePosts";
+
+const DEFAULT_POSTS = [
+  {
+    postId: "welcome",
+    content: "Welcome to Paradise!",
+    color: "ff9e00",
+    likes: 0,
+    you: false,
+  },
+];
+
+const readPosts = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (Array.isArray(stored) && stored.length > 0) {
+      return stored;
+    }
+  } catch (error) {
+    console.error("Error reading posts: ", error);
+  }
+  return DEFAULT_POSTS.map((post) => ({ ...post }));
+};
+
+const writePosts = (posts) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+  } catch (error) {
+    console.error("Error saving posts: ", error);
+  }
+};
 
 export const ClientService = {
-  // Fetch all posts
-  getPosts: async () => {
-    const response = await fetch(`${API_BASE_URL}/posts`);
-    if (!response.ok) {
-      throw new Error(`Failed with status: ${response.status}`);
-    }
-    return await response.json();
-  },
+  getPosts: async () => readPosts(),
 
-  // Attempt to create a new post
+  // Only the newest post gets the "you" marker
   addPost: async (newPost) => {
-    const response = await fetch(`${API_BASE_URL}/post`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newPost),
-    });
-
-    if (response.status === 409) {
-      return false;
-    }
-    if (!response.ok) {
-      throw new Error(await response.text()); // This will throw an error with the server's response text (e.g., 'User already has a post.').
-    }
-
-    const result = await response.json();
-    return result;
+    const posts = readPosts().map((post) => ({ ...post, you: false }));
+    const post = {
+      postId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      content: newPost.content,
+      color: newPost.color,
+      likes: 0,
+      you: true,
+    };
+    posts.push(post);
+    writePosts(posts);
+    return post;
   },
 
-  // Add a like to a specific post
   addLike: async (postId) => {
-    const response = await fetch(`${API_BASE_URL}/post`, {
-      method: "POST",
-      body: JSON.stringify({
-        postId: postId,
-        updateType: "like",
-      }),
-    });
-    if (response.status === 409) {
+    const posts = readPosts();
+    const post = posts.find((p) => p.postId === postId);
+    if (!post) {
       return false;
     }
-    if (!response.ok) {
-      throw new Error(`Failed with status: ${response.status}`);
-    }
-    return await response.json();
+    post.likes += 1;
+    writePosts(posts);
+    return post;
   },
 };
